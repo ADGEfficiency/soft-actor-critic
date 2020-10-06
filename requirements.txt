@@ -1,0 +1,4 @@
+gym==0.17.2
+tensorflow
+tensorflow_probability
+pytest
