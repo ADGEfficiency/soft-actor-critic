@@ -40,13 +40,12 @@ if __name__ == '__main__':
     q2 = make_qfunc(obs_shape, n_actions)
     q2_target = make_qfunc(obs_shape, n_actions)
 
-    q1, q1_target = update_params(online=q1, target=q1_target, rho=0.0)
-    q2, q2_target = update_params(online=q2, target=q2_target, rho=0.0)
+    update_params(online=q1, target=q1_target, rho=0.0)
+    update_params(online=q2, target=q2_target, rho=0.0)
     onlines = [q1, q2]
     targets = [q1_target, q2_target]
 
     #  computing targets for q funcs
-
     pol_act, log_prob, _ = policy(batch['next_observation'])
     next_state_target = tf.reduce_min([
         t([batch['next_observation'], pol_act])for t in targets
@@ -55,31 +54,35 @@ if __name__ == '__main__':
     d = 1.0
     al = 1.0  #  alpha
     ga = 1.0  #  gamma
+    rho = 0.99
 
     target = batch['reward'] + ga * (1 - d) * (next_state_target - al * log_prob)
 
-    with tf.GradientTape() as tape:
-        for 
-
-    grads = tape.gradient(loss, q1.trainable_variables)
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    optimizer.apply_gradients(zip(grads, q1.trainable_variables))
 
+    for onl in onlines:
+        with tf.GradientTape() as tape:
+            loss = tf.keras.losses.MSE(
+                onl([batch['observation'], batch['action']]), target
+            )
+
+        grads = tape.gradient(loss, onl.trainable_variables)
+        optimizer.apply_gradients(zip(grads, onl.trainable_variables))
 
     #  update policy
     with tf.GradientTape() as tape:
-        _, log_probs, _ = policy(batch['observation'])
-        loss = -1 * tf.reduce_mean(q1_error - log_probs)
+        pol_act, log_prob, _ = policy(batch['observation'])
+        state_target = tf.reduce_min([
+            t([batch['observation'], pol_act]) for t in targets
+        ], axis=0)
+        loss = -1 * tf.reduce_mean(state_target - al * log_prob)
 
     grads = tape.gradient(loss, policy.trainable_variables)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
     optimizer.apply_gradients(zip(grads, policy.trainable_variables))
 
     #  update target networks
-    # TODO
-    p = 0.99
-    for online, target in zip(q1.trainable_variables, q1_target.trainable_variables):
-        target.assign(p * target.value() + (1 - p) * online.value())
+    for onl, tar in zip(onlines, targets):
+        update_params(onl, tar, rho=rho)
 
     with writer.as_default():
         tf.summary.scalar('loss', loss, step=1)

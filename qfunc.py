@@ -22,7 +22,6 @@ def make_qfunc(obs_shape, n_actions):
 def update_params(online, target, rho):
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         t.assign(rho * t.value() + (1 - rho) * o.value())
-    return online, target
 
 
 def test_update_params():
@@ -40,7 +39,7 @@ def test_update_params():
     assert diff_check
 
     #  check to see they are all the same
-    online, target = update_params(online, target, 0.0)
+    update_params(online, target, 0.0)
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         assert_array_equal(o.value(), t.value())
 
