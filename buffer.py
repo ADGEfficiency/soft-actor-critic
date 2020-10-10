@@ -11,6 +11,9 @@ class Buffer():
         self.cursor = 0
         self.full = False
 
+    def __len__(self):
+        return len(self.data['observation'])
+
     @property
     def cursor(self):
         return self._cursor

@@ -10,6 +10,16 @@ log_stdev_low, log_stdev_high = -2, 20
 epsilon = 1e-6
 
 
+class RandomPolicy():
+    def __init__(self, env):
+        self.env = env
+    def __call__(self, observation=None):
+        return self.env.action_space.sample().reshape(1, *self.env.action_space.shape), None, None
+
+def make_random_policy(env):
+    return RandomPolicy(env)
+
+
 def make_policy(env):
     obs = env.reset().reshape(1, -1)
     obs_shape = obs.shape[1:]
@@ -49,7 +59,8 @@ def make_policy(env):
     return model
 
 if __name__ == '__main__':
-    from env import env
+    from env import GymWrapper
+    env = GymWrapper()
     model = make_policy(env)
     obs = env.reset().reshape(1, -1)
     print('model outputs:\n')

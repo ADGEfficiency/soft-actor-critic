@@ -2,9 +2,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from env import env
 
-def make_qfunc(obs_shape, n_actions):
+def make_qfunc(obs_shape, n_actions, name):
 
     in_obs = keras.Input(shape=obs_shape)
     in_act = keras.Input(shape=n_actions)
@@ -15,11 +14,12 @@ def make_qfunc(obs_shape, n_actions):
 
     return keras.Model(
         inputs=[in_obs, in_act],
-        outputs=q_value
+        outputs=q_value,
+        name=name
     )
 
 
-def update_params(online, target, rho):
+def update_target_network(online, target, rho):
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         t.assign(rho * t.value() + (1 - rho) * o.value())
 
@@ -39,7 +39,7 @@ def test_update_params():
     assert diff_check
 
     #  check to see they are all the same
-    update_params(online, target, 0.0)
+    update_target_network(online, target, 0.0)
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         assert_array_equal(o.value(), t.value())
 
