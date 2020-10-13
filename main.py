@@ -7,15 +7,27 @@ from policy import make_policy, make_random_policy
 from qfunc import make_qfunc, update_target_network
 
 
-def episode(env, buffer, policy, writer=None, counters=None):
+def episode(
+    env,
+    buffer,
+    policy,
+    writer=None,
+    counters=None,
+    reward_scale=1.0
+):
     obs = env.reset().reshape(1, -1)
     done = False
     episode_reward = 0
     while not done:
         action, _, _ = policy(obs)
         next_obs, reward, done = env.step(action)
-        buffer.append(env.Transition(obs, action, reward, next_obs, done))
+        buffer.append(env.Transition(obs, action, reward/reward_scale, next_obs, done))
         episode_reward += reward
+        if writer:
+            with writer.as_default():
+                step = counters['global-env-steps']
+                tf.summary.scalar('action', action[0][0], step=step)
+                counters['global-env-steps'] += 1
 
     if writer:
         with writer.as_default():
@@ -26,10 +38,15 @@ def episode(env, buffer, policy, writer=None, counters=None):
     return buffer, episode_reward
 
 
-def fill_buffer_random_policy(env, buffer):
+def last_100_episode_rewards(rewards):
+    last = rewards[-100:]
+    return sum(last)[0] / len(last)
+
+
+def fill_buffer_random_policy(env, buffer, reward_scale):
     random_policy = make_random_policy(env)
     while not buffer.full:
-        buffer, _ = episode(env, buffer, random_policy)
+        buffer, _ = episode(env, buffer, random_policy, reward_scale=reward_scale)
     assert len(buffer) == buffer.size
     return buffer
 
@@ -98,11 +115,11 @@ def update_policy(batch, actor, onlines, targets, writer, optimizer, counters, h
 
 
 if __name__ == '__main__':
-    hyp = {'alpha': 1.0, 'gamma': 0.99, 'rho': 0.99}
+    hyp = {'alpha': 1.0/5.0, 'gamma': 0.9, 'rho': 0.95}
     writer = tf.summary.create_file_writer('./logs')
 
     env = GymWrapper('Pendulum-v0')
-    buffer = Buffer(env.elements, size=1024)
+    buffer = Buffer(env.elements, size=int(1e6))
 
     #  create our agent policy (the actor)
     actor = make_policy(env)
@@ -111,29 +128,36 @@ if __name__ == '__main__':
     onlines, targets = initialize_qfuncs(env)
 
     #  fill the buffer
-    buffer = fill_buffer_random_policy(env, buffer)
+    buffer = fill_buffer_random_policy(env, buffer, reward_scale=100)
 
-    n_episodes = 10000
-    n_updates = 4  # TODO
+    n_episodes = 20000
+    n_updates = 16  # TODO
 
     from collections import defaultdict
     counters = defaultdict(int)
 
-    qfunc_optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    qfunc_optimizer = tf.keras.optimizers.Adam(learning_rate=3e-4)
 
     rewards = []
     for _ in range(n_episodes):
-        buffer, episode_reward = episode(env, buffer, actor, writer, counters)
+        buffer, episode_reward = episode(
+            env,
+            buffer,
+            actor,
+            writer,
+            counters,
+            reward_scale=100
+        )
         rewards.append(episode_reward)
         with writer.as_default():
             tf.summary.scalar(
                 'last 100 episode reward',
-                sum(rewards[-100:])[0] / 100,
+                last_100_episode_rewards(rewards),
                 counters['episodes']
             )
 
         for _ in range(n_updates):
-            batch = buffer.sample(64)
+            batch = buffer.sample(256)
 
             update_qfuncs(
                 batch,

@@ -3,6 +3,8 @@ from collections import namedtuple
 import gym
 
 
+def inverse_scale(action, low, high):
+    return action * (high - low) + low
 
 
 class GymWrapper():
@@ -20,8 +22,17 @@ class GymWrapper():
         self.action_space = self.env.action_space
 
     def step(self, action):
-        next_obs, reward, done, _ = self.env.step(action)
+        #  expect a scaled action here
+        assert action <= 1
+        assert action >= -1
+        unscaled_action = action * self.env.action_space.high
+        #print(f"unscaled_action is {unscaled_action}")
+        next_obs, reward, done, _ = self.env.step(unscaled_action)
         return next_obs.reshape(1, *self.env.observation_space.shape), reward, done
 
     def reset(self):
         return self.env.reset().reshape(1, *self.env.observation_space.shape)
+
+
+if __name__ == '__main__':
+    env = GymWrapper()

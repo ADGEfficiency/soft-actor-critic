@@ -1,6 +1,6 @@
-# Soft-Actor Critic 
+# Soft Actor-Critic 
 
-Reimplementation of the ??? paper Soft Actor Critic - an off-policy, continouous actor-critic reinforcement learning algorithm.
+Reimplementation of the 2018 paper Soft Actor Critic - an off-policy, continuous actor-critic reinforcement learning algorithm.
 
 
 ## Setup
@@ -19,6 +19,8 @@ $ python3 main.py
 ## References
 
 [Spinning Up notes on SAC](https://spinningup.openai.com/en/latest/algorithms/sac.html)
+
+[Haarnoja et. al (2018) Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290)
 
 
 ### Implementations

@@ -71,4 +71,3 @@ def test_random_policy_wrapper():
     obs = env.reset()
     sample, _ , _ = pol(obs)
     assert sample.shape == (1, 1)
-
