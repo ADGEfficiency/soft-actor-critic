@@ -1,8 +1,9 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-
 import tensorflow_probability as tfp
+
+from utils import minimum_target
 
 
 #  clip as per stable baselines
@@ -18,6 +19,7 @@ class RandomPolicy():
         unscaled = self.env.action_space.sample().reshape(1, *self.env.action_space.shape)
         scaled = unscaled / abs(self.env.action_space.high)
         return scaled, None, None
+
 
 def make_random_policy(env):
     return RandomPolicy(env)
@@ -60,3 +62,21 @@ def make_policy(env):
         outputs=[action, log_prob, deterministic_action]
     )
     return model
+
+
+def update_policy(batch, actor, onlines, targets, writer, optimizer, counters, hyp):
+    al = hyp['alpha']
+    with tf.GradientTape() as tape:
+        state_act, log_prob, _ = actor(batch['observation'])
+        policy_target = minimum_target(batch['observation'], state_act, targets)
+        loss = -1 * (policy_target - al * log_prob)
+
+    grads = tape.gradient(loss, actor.trainable_variables)
+    optimizer.apply_gradients(zip(grads, actor.trainable_variables))
+
+    with writer.as_default():
+        step = counters['policy_updates']
+        tf.summary.scalar('policy target', tf.reduce_mean(policy_target), step=step)
+        tf.summary.scalar('policy loss', tf.reduce_mean(loss), step=step)
+        tf.summary.histogram('policy weights', actor.trainable_variables[-2], step=step)
+        counters['policy_updates'] += 1
