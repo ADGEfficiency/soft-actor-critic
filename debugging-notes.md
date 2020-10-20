@@ -14,7 +14,7 @@ First thing was looking at transitions - we can see that the obs isn't being res
 2020-10-17 10:27:05,965 - climatedb - DEBUG - [[-0.46744808 -0.88402053 -0.40620497]], [[0.33263853]], [-7.0430164], [[-0.88291925 -0.46952483 -3.2582538 ]]
 
 added obs = next obs
-## not updating target net
+## 17-01
 
 Look at Q1 / Q2 loss
 
@@ -29,3 +29,27 @@ update_target_net()
 
 added writing of target net weights
 
+## 17-02
+
+policy loss much larger than qfunc loss
+
+rescale of the log prob loss to 1.0, added log prob to tensorborad
+
+## 17-03
+
+first signs of life
+- now to speed up the learning with a smaller net
+
+## 17-04
+
+looks great
+
+changes for next run:
+
+- increase num ep to 15000
+- increase to 5 updates per epsiode
+
+
+## 18-04
+
+looks great - on to the next env

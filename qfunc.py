@@ -12,6 +12,7 @@ def make_qfunc(obs_shape, n_actions, name):
     inputs = tf.concat([in_obs, in_act], axis=1)
 
     net = layers.Dense(64, activation='relu')(inputs)
+    net = layers.Dense(32, activation='relu')(inputs)
     q_value = layers.Dense(1, activation='linear')(net)
 
     return keras.Model(

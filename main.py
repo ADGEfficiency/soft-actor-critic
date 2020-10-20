@@ -84,13 +84,19 @@ from policy import update_policy
 
 if __name__ == '__main__':
     hyp = {
-        'alpha': 1.0/2.0,
+        'alpha': 1.0,
         'gamma': 0.99,
         'rho': 0.99,
         'buffer-size': 10000 * 10,
         'reward-scale': 10,
         'lr': 0.001,
+        'episodes': 15000,
+        'updates': '5'
     }
+
+    n_episodes = int(hyp['episodes'])
+    n_updates = int(hyp['updates'])
+
     writer = tf.summary.create_file_writer('./logs/sac')
     random_writer = tf.summary.create_file_writer('./logs/random')
     dump_json(hyp, './logs/hyperparameters.json')
@@ -118,9 +124,6 @@ if __name__ == '__main__':
         writer=random_writer,
         logger=transition_logger
     )
-
-    n_episodes = 10000
-    n_updates = 4
 
     qfunc_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
     pol_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])

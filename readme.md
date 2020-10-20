@@ -20,7 +20,7 @@ $ python3 main.py
 
 [Spinning Up notes on SAC](https://spinningup.openai.com/en/latest/algorithms/sac.html)
 
-[Haarnoja et. al (2018) Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290)
+[Haarnoja et. al (2018) Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290) - [pdf](https://arxiv.org/pdf/1801.01290.pdf)
 
 
 ### Implementations
