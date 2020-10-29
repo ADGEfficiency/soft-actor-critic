@@ -2,6 +2,10 @@
 
 Reimplementation of the 2018 paper Soft Actor Critic - an off-policy, continuous actor-critic reinforcement learning algorithm.
 
+Currently the implementation has been tested on the Pendulum-v0 gym environment:
+
+![](assets/pendulum.png)
+
 
 ## Setup
 
