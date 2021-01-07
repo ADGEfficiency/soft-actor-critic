@@ -3,6 +3,8 @@ from collections import namedtuple
 import numpy as np
 
 from buffer import Buffer
+from env import GymWrapper
+from policy import make_random_policy
 
 
 def test_buffer():
@@ -51,20 +53,15 @@ def test_system():
         buffer = episode(env, buffer, policy)
 
 
-from env import GymWrapper
 def test_pendulum_wrapper():
     env = GymWrapper('Pendulum-v0')
-
     res = env.reset()
     assert res.shape == (1, 3)
-
     act = env.action_space.sample().reshape(1, 1)
-
     next_obs, rew, done = env.step(act)
     assert next_obs.shape == (1, 3)
 
 
-from policy import make_random_policy
 def test_random_policy_wrapper():
     env = GymWrapper('Pendulum-v0')
     pol = make_random_policy(env)

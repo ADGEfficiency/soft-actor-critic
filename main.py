@@ -1,13 +1,12 @@
 from collections import defaultdict
 
-import gym
 import tensorflow as tf
 
 from buffer import Buffer
 from env import GymWrapper, env_ids
-from policy import make_policy, make_random_policy, update_policy
-from qfunc import make_qfunc, update_target_network, initialize_qfuncs, update_qfuncs
-
+from policy import make_policy, update_policy
+from random_policy import make_random_policy
+from qfunc import update_target_network, initialize_qfuncs, update_qfuncs
 from logger import make_logger
 from utils import dump_json
 

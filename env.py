@@ -2,10 +2,10 @@ from collections import namedtuple
 
 import gym
 
-env_ids = [
-    'Pendulum-v0'
-    'LunarLanderContinuous-v2',
-]
+env_ids = {
+    'pendulum': 'Pendulum-v0',
+    'lunar': 'LunarLanderContinuous-v2'
+}
 
 
 def inverse_scale(action, low, high):
@@ -13,7 +13,7 @@ def inverse_scale(action, low, high):
 
 
 class GymWrapper():
-    def __init__(self, env_id=:
+    def __init__(self, env_id):
         self.env = gym.make(env_id)
         self.elements = (
             ('observation', self.env.observation_space.shape, 'float32'),
@@ -36,7 +36,3 @@ class GymWrapper():
 
     def reset(self):
         return self.env.reset().reshape(1, *self.env.observation_space.shape)
-
-
-if __name__ == '__main__':
-    lunar = GymWrapper()
