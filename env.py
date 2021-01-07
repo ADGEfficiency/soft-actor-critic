@@ -2,13 +2,18 @@ from collections import namedtuple
 
 import gym
 
+env_ids = [
+    'Pendulum-v0'
+    'LunarLanderContinuous-v2',
+]
+
 
 def inverse_scale(action, low, high):
     return action * (high - low) + low
 
 
 class GymWrapper():
-    def __init__(self, env_id='Pendulum-v0'):
+    def __init__(self, env_id=:
         self.env = gym.make(env_id)
         self.elements = (
             ('observation', self.env.observation_space.shape, 'float32'),
@@ -26,7 +31,6 @@ class GymWrapper():
         assert action <= 1
         assert action >= -1
         unscaled_action = action * self.env.action_space.high
-        #print(f"unscaled_action is {unscaled_action}")
         next_obs, reward, done, _ = self.env.step(unscaled_action)
         return next_obs.reshape(1, *self.env.observation_space.shape), reward, done
 
@@ -35,4 +39,4 @@ class GymWrapper():
 
 
 if __name__ == '__main__':
-    env = GymWrapper()
+    lunar = GymWrapper()

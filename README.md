@@ -10,6 +10,7 @@ Currently the implementation has been tested on the Pendulum-v0 gym environment:
 ## Setup
 
 ```bash
+$ brew install swig
 $ pip install -r requirements.txt
 ```
 

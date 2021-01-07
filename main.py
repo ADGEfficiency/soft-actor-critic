@@ -1,11 +1,14 @@
+from collections import defaultdict
+
 import gym
 import tensorflow as tf
 
 from buffer import Buffer
-from env import GymWrapper
-from policy import make_policy, make_random_policy
+from env import GymWrapper, env_ids
+from policy import make_policy, make_random_policy, update_policy
 from qfunc import make_qfunc, update_target_network, initialize_qfuncs, update_qfuncs
 
+from logger import make_logger
 from utils import dump_json
 
 
@@ -78,10 +81,6 @@ def fill_buffer_random_policy(
     return buffer
 
 
-
-from policy import update_policy
-
-
 if __name__ == '__main__':
     hyp = {
         'alpha': 1.0,
@@ -100,10 +99,10 @@ if __name__ == '__main__':
     writer = tf.summary.create_file_writer('./logs/sac')
     random_writer = tf.summary.create_file_writer('./logs/random')
     dump_json(hyp, './logs/hyperparameters.json')
-    from logger import make_logger
     transition_logger = make_logger('./logs/transitions.data')
 
-    env = GymWrapper('Pendulum-v0')
+
+    env = GymWrapper(env_ids[0])
     buffer = Buffer(env.elements, size=hyp['buffer-size'])
 
     #  create our agent policy (the actor)
@@ -112,7 +111,6 @@ if __name__ == '__main__':
     #  create our qfuncs
     onlines, targets = initialize_qfuncs(env)
 
-    from collections import defaultdict
     counters = defaultdict(int)
 
     #  fill the buffer
