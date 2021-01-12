@@ -14,6 +14,7 @@ def inverse_scale(action, low, high):
 
 class GymWrapper():
     def __init__(self, env_id):
+        self.env_id = env_id
         self.env = gym.make(env_id)
         self.elements = (
             ('observation', self.env.observation_space.shape, 'float32'),
@@ -28,9 +29,11 @@ class GymWrapper():
 
     def step(self, action):
         #  expect a scaled action here
-        assert action <= 1
-        assert action >= -1
+        assert action.all() <= 1
+        assert action.all() >= -1
         unscaled_action = action * self.env.action_space.high
+        if 'lunar' in self.env_id.lower():
+            unscaled_action = unscaled_action.reshape(-1)
         next_obs, reward, done, _ = self.env.step(unscaled_action)
         return next_obs.reshape(1, *self.env.observation_space.shape), reward, done
 

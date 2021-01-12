@@ -1,7 +1,8 @@
-random seeds
-random seeds
+speed
+- can maybe do a single update for both value funcs (see line 187 of sac.py)
 
 
+random seeds
 
 blog post
 

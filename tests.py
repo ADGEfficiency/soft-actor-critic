@@ -4,7 +4,9 @@ import numpy as np
 
 from buffer import Buffer
 from env import GymWrapper
-from policy import make_random_policy
+from random_policy import make_random_policy
+
+from qfunc import make_qfunc, update_target_network
 
 
 def test_buffer():
@@ -35,24 +37,6 @@ def test_buffer():
 
 
 
-def test_system():
-    #from env import env, elements
-    from buffer import Buffer
-    from policy import make_random_policy, make_policy
-    from main import episode
-
-    env = GymWrapper('Pendulum-v0')
-    buffer = Buffer(env.elements, size=1024)
-    random_policy = make_random_policy(env)
-    while not buffer.full:
-        buffer = episode(env, buffer, random_policy)
-    batch = buffer.sample(64)
-
-    policy = make_policy(env)
-    for _ in range(3):
-        buffer = episode(env, buffer, policy)
-
-
 def test_pendulum_wrapper():
     env = GymWrapper('Pendulum-v0')
     res = env.reset()
@@ -68,3 +52,30 @@ def test_random_policy_wrapper():
     obs = env.reset()
     sample, _ , _ = pol(obs)
     assert sample.shape == (1, 1)
+
+
+def setup_dummy_qfunc():
+    import numpy as np
+    obs = np.random.uniform(0, 1, 6).reshape(2, 3)
+    act = np.random.uniform(0, 1, 4).reshape(2, 2)
+    return make_qfunc((3, ), (2, ), 'dummy'), obs, act
+
+
+def test_update_params():
+    from numpy.testing import assert_array_equal, assert_raises
+    online, _, _ = setup_dummy_qfunc()
+    target, _, _ = setup_dummy_qfunc()
+
+    #  check to see that some params are different
+    #  can't do for all as biases are init to zero
+    diff_check = False
+    for o, t in zip(online.trainable_variables, target.trainable_variables):
+        same = o.value().numpy() == t.value().numpy()
+        if not same.any():
+            diff_check = True
+    assert diff_check
+
+    #  check to see they are all the same
+    update_target_network(online, target, 0.0)
+    for o, t in zip(online.trainable_variables, target.trainable_variables):
+        assert_array_equal(o.value(), t.value())
