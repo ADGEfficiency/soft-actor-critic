@@ -91,9 +91,9 @@ def fill_buffer_random_policy(
 if __name__ == '__main__':
     from datetime import datetime
     hyp = {
-        'alpha': 0.2,
+        'alpha': 0.3,
         'gamma': 0.99,
-        'rho': 0.99,
+        'rho': 0.995,
         'buffer-size': int(1e6),
         'reward-scale': 10,
         'lr': 0.001,
@@ -219,4 +219,4 @@ if __name__ == '__main__':
                 step = counters['test-episodes']
                 tf.summary.scalar('test episode rewards', np.mean(test_results), step=step)
                 print('test', step, test_results)
-                actor.save_weights("pol.h5")
+                actor.save_weights("logs/pol.h5")
