@@ -32,7 +32,7 @@ $ python3 main.py
 
 [Open AI Spinning Up - TF 1](https://github.com/openai/spinningup/blob/master/spinup/algos/tf1/sac/core.py)
 
-[Stable Baselines - TF 1](https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/sac/policies.html)
+[Stable Baselines - TF 1](https://stable-baselines.readthedocs.io/en/master/modules/sac.html)
 
 SLM-Lab
 - [sac.py](https://github.com/kengz/SLM-Lab/blob/master/slm_lab/agent/algorithm/sac.py)

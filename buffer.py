@@ -1,5 +1,20 @@
-from collections import deque, namedtuple
+import pickle
+from pathlib import Path
+
 import numpy as np
+
+bpath = Path('./data/buffer.pkl')
+bpath.parent.mkdir(exist_ok=True)
+
+
+def save_buffer(buffer):
+    with bpath.open('wb') as fi:
+        pickle.dump(buffer, fi)
+
+
+def load_buffer():
+    with bpath.open('rb') as fi:
+        return pickle.load(fi)
 
 
 class Buffer():

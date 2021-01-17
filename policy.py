@@ -11,14 +11,14 @@ log_stdev_low, log_stdev_high = -2, 20
 epsilon = 1e-6
 
 
-def make_policy(env):
+def make_policy(env, size_scale=1):
     obs = env.reset().reshape(1, -1)
     obs_shape = obs.shape[1:]
     n_actions = env.action_space.shape[0]
 
     inputs = keras.Input(shape=obs_shape)
-    net = layers.Dense(64, activation='relu')(inputs)
-    net = layers.Dense(32, activation='relu')(inputs)
+    net = layers.Dense(64*size_scale, activation='relu')(inputs)
+    net = layers.Dense(32*size_scale, activation='relu')(net)
     net = layers.Dense(n_actions*2, activation='linear')(net)
 
     mean, log_stdev = tf.split(net, 2, axis=1)
@@ -51,7 +51,7 @@ def update_policy(batch, actor, onlines, targets, writer, optimizer, counters, h
     with tf.GradientTape() as tape:
         state_act, log_prob, _ = actor(batch['observation'])
         policy_target = minimum_target(batch['observation'], state_act, targets)
-        loss = -1 * (policy_target - al * log_prob)
+        loss = al * log_prob - policy_target
 
     grads = tape.gradient(loss, actor.trainable_variables)
     optimizer.apply_gradients(zip(grads, actor.trainable_variables))
