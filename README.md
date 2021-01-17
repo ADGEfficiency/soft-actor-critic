@@ -34,6 +34,10 @@ $ python3 main.py
 
 [Stable Baselines - TF 1](https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/sac/policies.html)
 
+SLM-Lab
+- [sac.py](https://github.com/kengz/SLM-Lab/blob/master/slm_lab/agent/algorithm/sac.py)
+- [lunar lander benchmark hyperparameters](https://github.com/kengz/SLM-Lab/blob/master/slm_lab/spec/benchmark/sac/sac_lunar.json)
+
 
 ### Environments
 
