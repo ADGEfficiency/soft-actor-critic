@@ -7,7 +7,7 @@ from utils import minimum_target
 
 
 #  clip as per stable baselines
-log_stdev_low, log_stdev_high = -2, 20
+log_stdev_low, log_stdev_high = -20, 2
 epsilon = 1e-6
 
 
@@ -33,8 +33,8 @@ def make_policy(env, size_scale=1):
     #  squashed
     action = tf.tanh(action)
     deterministic_action = tf.tanh(mean)
-    log_prob -= tf.reduce_sum(
-        tf.math.log(1 - action ** 2 + epsilon),
+    log_prob = tf.reduce_sum(
+        log_prob - tf.math.log(1 - action ** 2 + epsilon),
         axis=1,
         keepdims=True
     )
@@ -46,20 +46,30 @@ def make_policy(env, size_scale=1):
     return model
 
 
-def update_policy(batch, actor, onlines, targets, writer, optimizer, counters, hyp):
-    al = hyp['alpha']
+def update_policy(
+    batch,
+    actor,
+    onlines,
+    targets,
+    log_alpha,
+    writer,
+    optimizer,
+    counters,
+):
+    al = tf.exp(log_alpha)
     with tf.GradientTape() as tape:
         state_act, log_prob, _ = actor(batch['observation'])
         policy_target = minimum_target(batch['observation'], state_act, targets)
-        loss = al * log_prob - policy_target
+        loss = tf.reduce_mean(al * log_prob - policy_target)
 
     grads = tape.gradient(loss, actor.trainable_variables)
+    grads, _ = tf.clip_by_global_norm(grads, 5.0)
     optimizer.apply_gradients(zip(grads, actor.trainable_variables))
 
     with writer.as_default():
         step = counters['policy_updates']
         tf.summary.scalar('policy target', tf.reduce_mean(policy_target), step=step)
-        tf.summary.scalar('policy loss', tf.reduce_mean(loss), step=step)
-        tf.summary.scalar('policy logprob * alpha', tf.reduce_mean(al * log_prob), step=step)
+        tf.summary.scalar('policy loss', loss, step=step)
+        tf.summary.scalar('policy logprob', tf.reduce_mean(log_prob), step=step)
         tf.summary.histogram('policy weights', actor.trainable_variables[-2], step=step)
         counters['policy_updates'] += 1

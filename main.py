@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 import tensorflow as tf
 
+from alpha import initialize_log_alpha, update_alpha
 from buffer import bpath, load_buffer, save_buffer, Buffer
 from env import GymWrapper, env_ids
 from policy import make_policy, update_policy
@@ -24,7 +25,7 @@ def episode(
 ):
     obs = env.reset().reshape(1, -1)
     done = False
-    episode_reward = 0
+    episode_rewards =[]
     while not done:
         action, _, deterministic_action = policy(obs)
 
@@ -33,7 +34,7 @@ def episode(
 
         next_obs, reward, done = env.step(np.array(action))
         buffer.append(env.Transition(obs, action, reward/reward_scale, next_obs, done))
-        episode_reward += reward
+        episode_rewards.append(reward)
 
         if writer:
             with writer.as_default():
@@ -51,10 +52,10 @@ def episode(
     if writer:
         with writer.as_default():
             step = counters['episodes']
-            tf.summary.scalar('episode reward', tf.reduce_mean(episode_reward), step=step)
+            tf.summary.scalar('episode reward', tf.reduce_sum(episode_rewards), step=step)
             counters['episodes'] += 1
-            print(mode, step, episode_reward)
-    return buffer, episode_reward
+            print(mode, step, sum(episode_rewards))
+    return buffer, episode_rewards
 
 
 def last_100_episode_rewards(rewards):
@@ -91,15 +92,15 @@ def fill_buffer_random_policy(
 if __name__ == '__main__':
     from datetime import datetime
     hyp = {
-        'alpha': 0.3,
+        'initial-log-alpha': 0.0,
         'gamma': 0.99,
         'rho': 0.995,
         'buffer-size': int(1e6),
-        'reward-scale': 10,
-        'lr': 0.001,
-        'episodes': 25000,
+        'reward-scale': 5,
+        'lr': 3e-4,
+        'episodes': 500000,
         'updates': 5,
-        'test-every': 50,
+        'test-every': 10,
         'n_tests': 10,
         'size_scale': 6,
         'time': datetime.utcnow().isoformat()
@@ -110,7 +111,6 @@ if __name__ == '__main__':
 
     writer = tf.summary.create_file_writer('./logs/sac')
     random_writer = tf.summary.create_file_writer('./logs/random')
-    dump_json(hyp, './logs/hyperparameters.json')
     transition_logger = make_logger('./logs/transitions.data')
 
     env = GymWrapper(env_ids['lunar'])
@@ -118,6 +118,14 @@ if __name__ == '__main__':
     actor = make_policy(env, size_scale=hyp['size_scale'])
 
     onlines, targets = initialize_qfuncs(env, size_scale=hyp['size_scale'])
+
+    target_entropy, log_alpha = initialize_log_alpha(
+        env,
+        initial_value=hyp['initial-log-alpha']
+    )
+
+    hyp['target-entropy'] = float(target_entropy)
+    dump_json(hyp, './logs/hyperparameters.json')
 
     counters = defaultdict(int)
 
@@ -142,10 +150,11 @@ if __name__ == '__main__':
         for _ in range(2)
     ]
     pol_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
+    alpha_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
 
     rewards = []
     for _ in range(n_episodes):
-        buffer, episode_reward = episode(
+        buffer, episode_rewards = episode(
             env,
             buffer,
             actor,
@@ -155,8 +164,9 @@ if __name__ == '__main__':
             logger=transition_logger,
             mode='train',
         )
+        counters['episode-steps'] += len(episode_rewards)
 
-        rewards.append(episode_reward)
+        rewards.append(sum(episode_rewards))
 
         with writer.as_default():
             tf.summary.scalar(
@@ -165,7 +175,8 @@ if __name__ == '__main__':
                 counters['episodes']
             )
 
-        for _ in range(n_updates):
+        print(f'training for {len(episode_rewards)} steps')
+        for _ in range(len(episode_rewards)):
             batch = buffer.sample(1024)
 
             update_qfuncs(
@@ -173,6 +184,7 @@ if __name__ == '__main__':
                 actor,
                 onlines,
                 targets,
+                log_alpha,
                 writer,
                 qfunc_optimizers,
                 counters,
@@ -184,13 +196,12 @@ if __name__ == '__main__':
                 actor,
                 onlines,
                 targets,
+                log_alpha,
                 writer,
                 pol_optimizer,
-                counters,
-                hyp
+                counters
             )
 
-            #  update target networks
             for onl, tar in zip(onlines, targets):
                 update_target_network(
                     onl,
@@ -199,6 +210,16 @@ if __name__ == '__main__':
                     step=counters['qfunc_updates'],
                     writer=writer
                 )
+
+            update_alpha(
+                batch,
+                actor,
+                log_alpha,
+                target_entropy,
+                alpha_optimizer,
+                counters,
+                writer
+            )
 
         if counters['episodes'] % hyp['test-every'] == 0:
             test_results = []
@@ -211,7 +232,7 @@ if __name__ == '__main__':
                     logger=transition_logger,
                     mode='test'
                 )
-                test_results.append(test_episode_reward)
+                test_results.append(sum(test_episode_reward))
 
             test_results = np.mean(test_results)
             with writer.as_default():

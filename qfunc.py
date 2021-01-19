@@ -47,31 +47,37 @@ def initialize_qfuncs(env, size_scale=1):
     return onlines, targets
 
 
-def update_qfuncs(batch, actor, onlines, targets, writer, optimizers, counters, hyp):
+def update_qfuncs(
+    batch,
+    actor,
+    onlines,
+    targets,
+    log_alpha,
+    writer,
+    optimizers,
+    counters,
+    hyp
+):
     next_state_act, log_prob, _ = actor(batch['next_observation'])
     next_state_target = minimum_target(batch['next_observation'], next_state_act, targets)
 
-    al = hyp['alpha']
+    al = tf.exp(log_alpha)
     ga = hyp['gamma']
     target = batch['reward'] + ga * (1 - batch['done']) * (next_state_target - al * log_prob)
 
+    step = counters['qfunc_updates']
     with writer.as_default():
-        loss = 0
-        online_vars, grads = [], []
+        tf.summary.scalar('qfunc target', tf.reduce_mean(target), step=step)
+
         for onl, optimizer in zip(onlines, optimizers):
             with tf.GradientTape() as tape:
-                loss += tf.keras.losses.MSE(
-                    onl([batch['observation'], batch['action']]), target
-                )
+                q_value = onl([batch['observation'], batch['action']])
+                loss = tf.keras.losses.MSE(q_value, target)
 
-        online_vars.extend(onl.trainable_variables)
-        grads.extend(tape.gradient(loss, onl.trainable_variables))
+            grads = tape.gradient(loss, onl.trainable_variables)
+            grads, _ = tf.clip_by_global_norm(grads, 5.0)
+            optimizer.apply_gradients(zip(grads, onl.trainable_variables))
+            tf.summary.scalar(f'online {onl.name} loss', tf.reduce_mean(loss), step=step)
+            tf.summary.scalar(f'online {onl.name} q_value', tf.reduce_mean(q_value), step=step)
 
-        optimizer.apply_gradients(zip(grads, online_vars))
-
-        step = counters['qfunc_updates']
-        tf.summary.scalar(f'online loss', tf.reduce_mean(loss), step=step)
-        #tf.summary.histogram(f'{onl.name} weights', onl.trainable_variables[-2], step=step)
-
-        tf.summary.scalar('qfunc target', tf.reduce_mean(target), step=step)
         counters['qfunc_updates'] += 1

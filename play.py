@@ -1,5 +1,3 @@
-
-
 from policy import make_policy
 
 from env import GymWrapper, env_ids
@@ -13,10 +11,13 @@ obs = env.reset().reshape(1, -1)
 done = False
 episode_reward = 0
 
-actor.load_weights('pol.h5')
+actor.load_weights('logs/pol.h5')
 
 while not done:
     _, _, action = actor(obs)
     env.env.render()
     next_obs, reward, done = env.step(np.array(action))
     episode_reward += reward
+    obs = next_obs
+
+print(episode_reward)
