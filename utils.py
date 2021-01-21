@@ -5,6 +5,8 @@ from pathlib import Path
 
 import tensorflow as tf
 
+def minimum_target(state, action, targets):
+    return tf.reduce_min([t([state, action]) for t in targets], axis=0)
 
 PATH = Path('./experiments/env_id/run_id')
 PATH.mkdir(exist_ok=True, parents=True)
@@ -60,13 +62,21 @@ def make_logger(log_file):
     return logger
 
 
+import numpy as np
+
+
 class Writer:
     def __init__(self, path, counters):
         path = PATH / 'tensorboard-logs' / path
         self.writer = tf.summary.create_file_writer(str(path))
         self.counters = counters
 
-    def scalar(self, value, name, counter):
+    def scalar(self, value, name, counter, verbose=False):
+        value = np.array(value)
+
         with self.writer.as_default():
             step = self.counters[counter]
-            tf.summary.scalar(name, value, step=step)
+            tf.summary.scalar(name, np.mean(value), step=step)
+
+        if verbose:
+            print(f'{name} \n step {self.counters[counter]:6.0f}, mu {np.mean(value):4.2f}, sig {np.std(value):4.2f}')

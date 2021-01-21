@@ -2,9 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+from utils import minimum_target
 
-def minimum_target(state, action, targets):
-    return tf.reduce_min([t([state, action]) for t in targets], axis=0)
 
 
 def make_qfunc(obs_shape, n_actions, name, size_scale=1):

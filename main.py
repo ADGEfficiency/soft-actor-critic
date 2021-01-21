@@ -137,6 +137,7 @@ def train(
         counters,
         writer
     )
+    counters['train-steps'] += 1
 
 
 def test(
@@ -175,7 +176,7 @@ if __name__ == '__main__':
         'batch-size': 1024,
         'episodes': 500000,
         'updates': 5,
-        'test-every': 1,
+        'test-every': 3,
         'n-tests': 10,
         'size_scale': 6,
         'time': datetime.utcnow().isoformat()
@@ -221,7 +222,7 @@ if __name__ == '__main__':
             buffer,
             reward_scale=hyp['reward-scale'],
             counters=counters,
-            writer=random_writer,
+            writer=writers['random'],
             logger=transition_logger
         )
         save_buffer(buffer, 'random')
@@ -244,11 +245,13 @@ if __name__ == '__main__':
             logger=transition_logger,
             mode='train',
         )
+        print('')
 
         writers['train'].scalar(
-            np.sum(train_rewards),
-            'episode-reward',
-            'episodes'
+            train_rewards,
+            'train-episode-reward',
+            'train-episodes',
+            verbose=True
         )
 
         rewards.append(sum(train_rewards))
@@ -257,9 +260,8 @@ if __name__ == '__main__':
             'last-100-episode-rewards',
             'episodes'
         )
-        print('train', counters['train-episodes'], np.sum(train_rewards))
 
-        print(f'training for {len(train_rewards)} steps')
+        print(f'training \n step {counters["train-steps"]:6.0f}, {len(train_rewards)} steps')
         for _ in range(len(train_rewards)):
             batch = buffer.sample(hyp['batch-size'])
             train(
@@ -275,7 +277,7 @@ if __name__ == '__main__':
                 hyp
             )
 
-        if counters['episodes'] % hyp['test-every'] == 0:
+        if counters['train-episodes'] % hyp['test-every'] == 0:
             test_rewards = test(
                 env,
                 buffer,
@@ -285,7 +287,6 @@ if __name__ == '__main__':
                 hyp,
                 logger=transition_logger
             )
-            test_rewards = np.mean(test_rewards)
 
             dump(
                 actor,
@@ -296,6 +297,6 @@ if __name__ == '__main__':
             writers['test'].scalar(
                 test_rewards,
                 'test-episode-rewards',
-                'test-episodes'
+                'test-episodes',
+                verbose=True
             )
-            print('test', counters['test-episodes'], test_rewards)
