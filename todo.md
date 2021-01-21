@@ -1,8 +1,23 @@
-speed
-- can maybe do a single update for both value funcs (see line 187 of sac.py)
-
-
 random seeds
+
+create gifs 
+
+ideas
+- make pol, make qfunc (not initialize)
+- hyperparameters should be loaded in (experiment class?)
+- some things are added to hyperparameters...
+- where does buffer live?
+- optimizers should be dict
+
+runner
+- counters can hold rewards as well - runner class?
+- writer
+- counter
+- hyperparameters
+
+wanted func
+- start experiment from file
+- restart experiment from checkpoint (based on tests)
 
 blog post
 

@@ -2,7 +2,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from utils import minimum_target
+
+def minimum_target(state, action, targets):
+    return tf.reduce_min([t([state, action]) for t in targets], axis=0)
 
 
 def make_qfunc(obs_shape, n_actions, name, size_scale=1):
@@ -22,13 +24,19 @@ def make_qfunc(obs_shape, n_actions, name, size_scale=1):
     )
 
 
-def update_target_network(online, target, rho, step=None, writer=None):
+def update_target_networks(
+    onlines,
+    targets,
+    hyp,
+    counters
+):
+    for onl, tar in zip(onlines, targets):
+        update_target_network(onl, tar, hyp['rho'])
+
+
+def update_target_network(online, target, rho, step=None):
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         t.assign(rho * t.value() + (1 - rho) * o.value())
-
-    if writer:
-        with writer.as_default():
-            tf.summary.histogram(f'{target.name} target weights', target.trainable_variables[-2], step=step)
 
 
 def initialize_qfuncs(env, size_scale=1):
@@ -65,19 +73,30 @@ def update_qfuncs(
     ga = hyp['gamma']
     target = batch['reward'] + ga * (1 - batch['done']) * (next_state_target - al * log_prob)
 
-    step = counters['qfunc_updates']
-    with writer.as_default():
-        tf.summary.scalar('qfunc target', tf.reduce_mean(target), step=step)
+    writer.scalar(
+        tf.reduce_mean(target),
+        'qfunc-target',
+        'qfunc-updates'
+    )
 
-        for onl, optimizer in zip(onlines, optimizers):
-            with tf.GradientTape() as tape:
-                q_value = onl([batch['observation'], batch['action']])
-                loss = tf.keras.losses.MSE(q_value, target)
+    for onl, optimizer in zip(onlines, optimizers):
+        with tf.GradientTape() as tape:
+            q_value = onl([batch['observation'], batch['action']])
+            loss = tf.keras.losses.MSE(q_value, target)
 
-            grads = tape.gradient(loss, onl.trainable_variables)
-            grads, _ = tf.clip_by_global_norm(grads, 5.0)
-            optimizer.apply_gradients(zip(grads, onl.trainable_variables))
-            tf.summary.scalar(f'online {onl.name} loss', tf.reduce_mean(loss), step=step)
-            tf.summary.scalar(f'online {onl.name} q_value', tf.reduce_mean(q_value), step=step)
+        grads = tape.gradient(loss, onl.trainable_variables)
+        grads, _ = tf.clip_by_global_norm(grads, 5.0)
+        optimizer.apply_gradients(zip(grads, onl.trainable_variables))
 
-        counters['qfunc_updates'] += 1
+        writer.scalar(
+            tf.reduce_mean(loss),
+            f'online-{onl.name}-loss',
+            'qfunc-updates'
+        )
+        writer.scalar(
+            tf.reduce_mean(q_value),
+            f'online-{onl.name}-value',
+            'qfunc-updates'
+        )
+
+    counters['qfunc-updates'] += 1

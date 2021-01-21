@@ -35,10 +35,19 @@ def update_alpha(
     grad = tape.gradient(loss, log_alpha)
     optimizer.apply_gradients(zip([grad, ], [log_alpha, ]))
 
-    with writer.as_default():
-        step = counters['alpha-updates']
-        tf.summary.scalar('alpha-loss', tf.reduce_mean(loss), step=step)
-        tf.summary.scalar('alpha', tf.exp(log_alpha), step=step)
-        tf.summary.scalar('log-alpha', log_alpha, step=step)
-        tf.summary.scalar('alpha-log-probs', tf.reduce_mean(log_prob), step=step)
-        counters['alpha-updates'] += 1
+    writer.scalar(
+        tf.reduce_mean(loss),
+        'alpha-loss',
+        'alpha-updates'
+    )
+    writer.scalar(
+        tf.exp(log_alpha),
+        'alpha',
+        'alpha-updates'
+    )
+    writer.scalar(
+        tf.reduce_mean(log_prob),
+        'alpha-log-probs',
+        'alpha-updates'
+    )
+    counters['alpha-updates'] += 1

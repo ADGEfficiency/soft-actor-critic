@@ -66,10 +66,20 @@ def update_policy(
     grads, _ = tf.clip_by_global_norm(grads, 5.0)
     optimizer.apply_gradients(zip(grads, actor.trainable_variables))
 
-    with writer.as_default():
-        step = counters['policy_updates']
-        tf.summary.scalar('policy target', tf.reduce_mean(policy_target), step=step)
-        tf.summary.scalar('policy loss', loss, step=step)
-        tf.summary.scalar('policy logprob', tf.reduce_mean(log_prob), step=step)
-        tf.summary.histogram('policy weights', actor.trainable_variables[-2], step=step)
-        counters['policy_updates'] += 1
+    writer.scalar(
+        tf.reduce_mean(policy_target),
+        'policy-target',
+        'policy-updates'
+    )
+    writer.scalar(
+        tf.reduce_mean(loss),
+        'policy-loss',
+        'policy-updates'
+    )
+    writer.scalar(
+        tf.reduce_mean(log_prob),
+        'policy-log-prob',
+        'policy-updates'
+    )
+
+    counters['policy-updates'] += 1

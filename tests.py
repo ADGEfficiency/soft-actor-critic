@@ -79,3 +79,6 @@ def test_update_params():
     update_target_network(online, target, 0.0)
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         assert_array_equal(o.value(), t.value())
+
+
+

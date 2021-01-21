@@ -3,16 +3,18 @@ from pathlib import Path
 
 import numpy as np
 
-bpath = Path('./data/buffer.pkl')
-bpath.parent.mkdir(exist_ok=True)
+
+bpath = Path('./data/buffers/random.pkl')
 
 
 def save_buffer(buffer):
+    print(f'saving buffer to {bpath}')
     with bpath.open('wb') as fi:
         pickle.dump(buffer, fi)
 
 
 def load_buffer():
+    print(f'loading buffer from {bpath}')
     with bpath.open('rb') as fi:
         return pickle.load(fi)
 

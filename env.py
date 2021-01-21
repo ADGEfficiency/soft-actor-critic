@@ -13,9 +13,11 @@ def inverse_scale(action, low, high):
 
 
 class GymWrapper():
-    def __init__(self, env_id):
+    def __init__(self, env_id, monitor=False):
         self.env_id = env_id
         self.env = gym.make(env_id)
+        if monitor:
+            self.env = gym.wrappers.Monitor(self.env, monitor, force=True)
         self.elements = (
             ('observation', self.env.observation_space.shape, 'float32'),
             ('action', self.env.action_space.shape, 'float32'),
