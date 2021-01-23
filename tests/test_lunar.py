@@ -1,10 +1,10 @@
-from env import GymWrapper, env_ids
-from random_policy import make_random_policy
+from sac.env import GymWrapper
+from sac.random_policy import make as make_random_policy
 
 
-if __name__ == '__main__':
-    env = GymWrapper(env_ids['pendulum'])
+def test_envs():
+    env = GymWrapper('pendulum')
     policy = make_random_policy(env)
 
-    env = GymWrapper(env_ids['lunar'])
+    env = GymWrapper('lunar')
     policy = make_random_policy(env)

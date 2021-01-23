@@ -1,12 +1,13 @@
 from collections import namedtuple
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_raises
 
-from buffer import Buffer
-from env import GymWrapper
-from random_policy import make_random_policy
-
-from qfunc import make_qfunc, update_target_network
+from sac.buffers import Buffer
+from sac.env import GymWrapper
+from sac.random_policy import make as make_random_policy
+from sac.qfunc import make_qfunc
+from sac.qfunc import update_target_network
 
 
 def test_buffer():
@@ -38,7 +39,7 @@ def test_buffer():
 
 
 def test_pendulum_wrapper():
-    env = GymWrapper('Pendulum-v0')
+    env = GymWrapper('pendulum')
     res = env.reset()
     assert res.shape == (1, 3)
     act = env.action_space.sample().reshape(1, 1)
@@ -47,7 +48,7 @@ def test_pendulum_wrapper():
 
 
 def test_random_policy_wrapper():
-    env = GymWrapper('Pendulum-v0')
+    env = GymWrapper('pendulum')
     pol = make_random_policy(env)
     obs = env.reset()
     sample, _ , _ = pol(obs)
@@ -62,7 +63,6 @@ def setup_dummy_qfunc():
 
 
 def test_update_params():
-    from numpy.testing import assert_array_equal, assert_raises
     online, _, _ = setup_dummy_qfunc()
     target, _, _ = setup_dummy_qfunc()
 
@@ -79,6 +79,3 @@ def test_update_params():
     update_target_network(online, target, 0.0)
     for o, t in zip(online.trainable_variables, target.trainable_variables):
         assert_array_equal(o.value(), t.value())
-
-
-

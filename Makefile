@@ -3,7 +3,7 @@ setup:
 	pip install .
 
 test:
-	pytest test_system.py --tb=line --disable-pytest-warnings
+	pytest tests --tb=line --disable-pytest-warnings
 
 tensorboard:
 	tensorboard --logdir experiments/results
