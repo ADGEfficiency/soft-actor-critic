@@ -1,9 +1,9 @@
 import json
 import logging
-
+import os
 from pathlib import Path
 
-import os
+import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 
@@ -23,8 +23,8 @@ def load_json(fi):
     return json.loads(fi.read_text())
 
 
-def get_latest_run(home):
-    runs = [p.name for p in home.iterdir() if p.is_dir()]
+def get_latest_run(experiment):
+    runs = [p.name for p in experiment.iterdir() if p.is_dir()]
     runs = [run.split('-')[-1] for run in runs]
     runs = [run for run in runs if run.isdigit()]
 
@@ -64,17 +64,16 @@ def get_run_name(hyp, experiment):
     return run
 
 
-def checkpoint(
-    actor,
-    episode,
-    reward,
-    paths
-):
+def checkpoint(actor, episode, rewards, paths):
     path = paths['run'] / 'checkpoints' / f'test-episode-{episode}'
     path.mkdir(exist_ok=True, parents=True)
     actor.save_weights(path / 'actor.h5')
     dump_json(
-        {'episode': int(episode), 'reward': float(reward)},
+        {
+            'episode': int(episode),
+            'rewards': np.mean(rewards),
+            'reward': list(rewards)
+        },
         path / 'results.json'
     )
 
@@ -105,9 +104,6 @@ def make_logger(log_file, home):
     return logger
 
 
-import numpy as np
-
-
 class Writer:
     def __init__(self, name, counters, home):
         path = home / 'tensorboard' / name
@@ -122,4 +118,4 @@ class Writer:
             tf.summary.scalar(name, np.mean(value), step=step)
 
         if verbose:
-            print(f'{name} \n step {self.counters[counter]:6.0f}, mu {np.mean(value):4.2f}, sig {np.std(value):4.2f}')
+            print(f'{name} \n step {self.counters[counter]:6.0f}, mu {np.mean(value):5.1f}, sig {np.std(value):5.1f}')

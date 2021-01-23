@@ -2,8 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from target import update_target_network
-from utils import minimum_target
+from sac.target import update_target_network
+from sac.utils import minimum_target
 
 
 def make(env, size_scale=1):

@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import gym
 
+
 #  key=name, value=id
 env_ids = {
     'pendulum': 'Pendulum-v0',

@@ -9,5 +9,5 @@ class RandomPolicy():
         return scaled, None, None
 
 
-def make_random_policy(env):
+def make(env):
     return RandomPolicy(env)

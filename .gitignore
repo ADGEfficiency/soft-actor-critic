@@ -2,5 +2,6 @@
 logs
 debug.log
 data
-experiments
+experiments/results
 old-tensorboards
+monitor

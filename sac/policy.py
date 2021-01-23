@@ -3,7 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow_probability as tfp
 
-from utils import minimum_target
+from sac.utils import minimum_target
 
 
 #  clip as per stable baselines

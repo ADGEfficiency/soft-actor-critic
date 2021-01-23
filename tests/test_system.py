@@ -2,7 +2,7 @@ from main import main
 
 
 hyp = {
-    'initial-log-alpha': 1.0,
+    'initial-log-alpha': 0.0,
     'gamma': 0.99,
     'rho': 0.995,
     'buffer-size': int(1e3),

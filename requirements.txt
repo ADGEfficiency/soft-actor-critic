@@ -4,3 +4,4 @@ tensorflow-estimator==2.3.0
 tensorflow-probability==0.11.0
 pytest
 box2d-py==2.3.8
+click

@@ -2,44 +2,30 @@ import pickle
 
 import numpy as np
 
-import utils
 
-
-def make(
-    env,
-    hyp
-):
-    buffer_path = hyp.get('buffer')
+def make(env, hyp):
+    buffer_path = hyp['buffer']
 
     if buffer_path == 'new':
         return Buffer(env.elements, size=hyp['buffer-size'])
 
-    elif buffer_path is None:
-        return Buffer(env.elements, size=hyp['buffer-size'])
-
-    elif buffer_path == 'lastest':
-        last_run = utils.get_latest_run()
-        buffer = load_buffer(last_run)
-        assert buffer.full
-        return buffer
-
     else:
-        buffer = load_buffer(buffer_path)
+        buffer = load(buffer_path)
         assert buffer.full
         return buffer
 
 
-def save(buffer, path, name):
-    path = path / 'buffers' / name
+def save(buffer, path):
     print(f'saving buffer to {path}')
     path.parent.mkdir(exist_ok=True, parents=True)
     with path.open('wb') as fi:
         pickle.dump(buffer, fi)
 
-
-def load_buffer():
-    print(f'loading buffer from {bpath}')
-    with bpath.open('rb') as fi:
+from pathlib import Path
+def load(path):
+    path = Path(path)
+    print(f'loading buffer from {path}')
+    with path.open('rb') as fi:
         return pickle.load(fi)
 
 

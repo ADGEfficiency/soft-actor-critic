@@ -1,5 +1,11 @@
 random seeds
 
+what happen when you use a run name twice?
+- remove or iterate?
+
+do average of test train rewards separately
+- maybe keep separate lists (plus one combined)
+
 ideas
 - make pol, make qfunc (not initialize)
 - hyperparameters should be loaded in (experiment class?)
