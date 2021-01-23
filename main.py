@@ -1,16 +1,18 @@
 from collections import defaultdict
-from datetime import datetime
+from time import sleep
 
 import numpy as np
 import tensorflow as tf
+import click
 
-from alpha import initialize_log_alpha, update_alpha
-from buffer import load_buffer, save_buffer, Buffer
-from env import GymWrapper, env_ids
-from policy import make_policy, update_policy
+import alpha
+from env import GymWrapper
+import buffers
+import policy
+import qfunc
 from random_policy import make_random_policy
-from qfunc import update_target_networks, initialize_qfuncs, update_qfuncs
-from utils import *
+import target
+import utils
 
 
 def episode(
@@ -61,7 +63,7 @@ def fill_buffer_random_policy(
     env,
     buffer,
     hyp,
-    writer,
+    writers,
     counters,
     logger,
 ):
@@ -69,21 +71,30 @@ def fill_buffer_random_policy(
     random_policy = make_random_policy(env)
 
     while not buffer.full:
-        buffer, _ = episode(
+        buffer, random_episode_reward  = episode(
             env,
             buffer,
             random_policy,
             hyp,
-            writer=writer,
             counters=counters,
             logger=logger,
             mode='random'
         )
+        writers['random'].scalar(
+            random_episode_reward,
+            'random-episode-reward',
+            'random-episodes',
+            verbose=True
+        )
+        writers['random'].scalar(
+            random_episode_reward,
+            'episode-reward',
+            'episodes'
+        )
+
     assert len(buffer) == buffer.size
-    print(f"buffer filled with {len(buffer)} samples")
+    print(f"buffer filled with {len(buffer)} samples\n")
     return buffer
-
-
 
 
 def train(
@@ -95,10 +106,11 @@ def train(
     writer,
     qfunc_optimizers,
     pol_optimizer,
+    alpha_optimizer,
     counters,
     hyp
 ):
-    update_qfuncs(
+    qfunc.update(
         batch,
         actor,
         onlines,
@@ -110,7 +122,7 @@ def train(
         hyp
     )
 
-    update_policy(
+    policy.update(
         batch,
         actor,
         onlines,
@@ -121,18 +133,18 @@ def train(
         counters
     )
 
-    update_target_networks(
+    target.update(
         onlines,
         targets,
         hyp,
         counters
     )
 
-    update_alpha(
+    alpha.update(
         batch,
         actor,
         log_alpha,
-        target_entropy,
+        hyp,
         alpha_optimizer,
         counters,
         writer
@@ -165,67 +177,45 @@ def test(
     return test_results
 
 
-if __name__ == '__main__':
-    hyp = {
-        'initial-log-alpha': 0.0,
-        'gamma': 0.99,
-        'rho': 0.995,
-        'buffer-size': int(1e6),
-        'reward-scale': 5,
-        'lr': 3e-4,
-        'batch-size': 1024,
-        'episodes': 500000,
-        'updates': 5,
-        'test-every': 3,
-        'n-tests': 10,
-        'size_scale': 6,
-        'time': datetime.utcnow().isoformat()
-    }
-
-    n_episodes = int(hyp['episodes'])
-    n_updates = int(hyp['updates'])
-
+def main(hyp):
     counters = defaultdict(int)
+
+    paths = utils.get_paths(hyp)
+
     writers = {
-        'random': Writer('random', counters),
-        'train': Writer('train', counters),
-        'test': Writer('test', counters)
+        'random': utils.Writer('random', counters, paths['run']),
+        'train': utils.Writer('train', counters, paths['run']),
+        'test': utils.Writer('test', counters, paths['run'])
     }
+    transition_logger = utils.make_logger('transitions.data', paths['run'])
 
-    transition_logger = make_logger('transitions.data')
+    env = GymWrapper(hyp['env-name'])
 
-    env = GymWrapper(env_ids['lunar'])
+    actor = policy.make(env, hyp)
 
-    actor = make_policy(env, size_scale=hyp['size_scale'])
+    onlines, targets = qfunc.make(env, size_scale=hyp['size-scale'])
 
-    onlines, targets = initialize_qfuncs(env, size_scale=hyp['size_scale'])
-
-    target_entropy, log_alpha = initialize_log_alpha(
+    target_entropy, log_alpha = alpha.make(
         env,
         initial_value=hyp['initial-log-alpha']
     )
 
     hyp['target-entropy'] = float(target_entropy)
 
-    from utils import PATH
-    dump_json(hyp, PATH / 'hyperparameters.json')
+    utils.dump_json(hyp, paths['run'] / 'hyperparameters.json')
 
+    buffer = buffers.make(env, hyp)
 
-    # if bpath.exists():
-    if True:
-        buffer = load_buffer()
-        assert buffer.full
-    else:
-        buffer = Buffer(env.elements, size=hyp['buffer-size'])
+    if not buffer.full:
         buffer = fill_buffer_random_policy(
             env,
             buffer,
-            reward_scale=hyp['reward-scale'],
+            hyp,
+            writers=writers,
             counters=counters,
-            writer=writers['random'],
             logger=transition_logger
         )
-        save_buffer(buffer, 'random')
+        buffers.save(buffer, paths['run'], 'random.pkl')
 
     qfunc_optimizers = [
         tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
@@ -235,7 +225,7 @@ if __name__ == '__main__':
     alpha_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
 
     rewards = []
-    for _ in range(n_episodes):
+    for _ in range(int(hyp['n-episodes'])):
         buffer, train_rewards = episode(
             env,
             buffer,
@@ -252,6 +242,11 @@ if __name__ == '__main__':
             'train-episode-reward',
             'train-episodes',
             verbose=True
+        )
+        writers['train'].scalar(
+            train_rewards,
+            'episode-reward',
+            'episodes'
         )
 
         rewards.append(sum(train_rewards))
@@ -273,6 +268,7 @@ if __name__ == '__main__':
                 writers['train'],
                 qfunc_optimizers,
                 pol_optimizer,
+                alpha_optimizer,
                 counters,
                 hyp
             )
@@ -288,10 +284,11 @@ if __name__ == '__main__':
                 logger=transition_logger
             )
 
-            dump(
+            utils.checkpoint(
                 actor,
-                episode=counters['episodes'],
-                reward=np.mean(test_rewards)
+                episode=counters['test-episodes'],
+                reward=np.mean(test_rewards),
+                paths=paths
             )
 
             writers['test'].scalar(
@@ -300,3 +297,27 @@ if __name__ == '__main__':
                 'test-episodes',
                 verbose=True
             )
+            writers['test'].scalar(
+                test_rewards,
+                'episode-reward',
+                'episodes'
+            )
+
+
+@click.command()
+@click.argument(
+    "experiment-json",
+    nargs=1
+)
+def cli(experiment_json):
+    print(experiment_json)
+    hyp = utils.load_json(experiment_json)
+    print(hyp)
+    sleep(2)
+    main(hyp)
+
+
+if __name__ == '__main__':
+    # hyp = utils.load_json('experiments/pendulum.json')
+    # main(hyp)
+    cli()

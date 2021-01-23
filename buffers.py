@@ -1,15 +1,39 @@
 import pickle
-from pathlib import Path
 
 import numpy as np
 
+import utils
 
-bpath = Path('./data/buffers/random.pkl')
+
+def make(
+    env,
+    hyp
+):
+    buffer_path = hyp.get('buffer')
+
+    if buffer_path == 'new':
+        return Buffer(env.elements, size=hyp['buffer-size'])
+
+    elif buffer_path is None:
+        return Buffer(env.elements, size=hyp['buffer-size'])
+
+    elif buffer_path == 'lastest':
+        last_run = utils.get_latest_run()
+        buffer = load_buffer(last_run)
+        assert buffer.full
+        return buffer
+
+    else:
+        buffer = load_buffer(buffer_path)
+        assert buffer.full
+        return buffer
 
 
-def save_buffer(buffer):
-    print(f'saving buffer to {bpath}')
-    with bpath.open('wb') as fi:
+def save(buffer, path, name):
+    path = path / 'buffers' / name
+    print(f'saving buffer to {path}')
+    path.parent.mkdir(exist_ok=True, parents=True)
+    with path.open('wb') as fi:
         pickle.dump(buffer, fi)
 
 

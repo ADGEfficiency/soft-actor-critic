@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import gym
 
+#  key=name, value=id
 env_ids = {
     'pendulum': 'Pendulum-v0',
     'lunar': 'LunarLanderContinuous-v2'
@@ -13,9 +14,9 @@ def inverse_scale(action, low, high):
 
 
 class GymWrapper():
-    def __init__(self, env_id, monitor=False):
-        self.env_id = env_id
-        self.env = gym.make(env_id)
+    def __init__(self, env_name, monitor=False):
+        self.env_id = env_ids[env_name]
+        self.env = gym.make(self.env_id)
         if monitor:
             self.env = gym.wrappers.Monitor(self.env, monitor, force=True)
         self.elements = (

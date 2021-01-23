@@ -2,43 +2,12 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+from target import update_target_network
 from utils import minimum_target
 
 
-
-def make_qfunc(obs_shape, n_actions, name, size_scale=1):
-
-    in_obs = keras.Input(shape=obs_shape)
-    in_act = keras.Input(shape=n_actions)
-    inputs = tf.concat([in_obs, in_act], axis=1)
-
-    net = layers.Dense(64*size_scale, activation='relu')(inputs)
-    net = layers.Dense(32*size_scale, activation='relu')(inputs)
-    q_value = layers.Dense(1, activation='linear')(net)
-
-    return keras.Model(
-        inputs=[in_obs, in_act],
-        outputs=q_value,
-        name=name
-    )
-
-
-def update_target_networks(
-    onlines,
-    targets,
-    hyp,
-    counters
-):
-    for onl, tar in zip(onlines, targets):
-        update_target_network(onl, tar, hyp['rho'])
-
-
-def update_target_network(online, target, rho, step=None):
-    for o, t in zip(online.trainable_variables, target.trainable_variables):
-        t.assign(rho * t.value() + (1 - rho) * o.value())
-
-
-def initialize_qfuncs(env, size_scale=1):
+def make(env, size_scale=1):
+    """makes the two online & two targets"""
     obs_shape = env.observation_space.shape
     n_actions = env.action_space.shape
 
@@ -54,7 +23,24 @@ def initialize_qfuncs(env, size_scale=1):
     return onlines, targets
 
 
-def update_qfuncs(
+def make_qfunc(obs_shape, n_actions, name, size_scale=1):
+    """makes a single qfunc"""
+    in_obs = keras.Input(shape=obs_shape)
+    in_act = keras.Input(shape=n_actions)
+    inputs = tf.concat([in_obs, in_act], axis=1)
+
+    net = layers.Dense(64*size_scale, activation='relu')(inputs)
+    net = layers.Dense(32*size_scale, activation='relu')(inputs)
+    q_value = layers.Dense(1, activation='linear')(net)
+
+    return keras.Model(
+        inputs=[in_obs, in_act],
+        outputs=q_value,
+        name=name
+    )
+
+
+def update(
     batch,
     actor,
     onlines,

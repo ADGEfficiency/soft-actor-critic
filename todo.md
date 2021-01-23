@@ -1,7 +1,5 @@
 random seeds
 
-create gifs 
-
 ideas
 - make pol, make qfunc (not initialize)
 - hyperparameters should be loaded in (experiment class?)

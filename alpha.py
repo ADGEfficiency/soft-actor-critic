@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def initialize_log_alpha(
+def make(
     env,
     initial_value
 ):
@@ -17,15 +17,16 @@ def initialize_log_alpha(
     return target_entropy, log_alpha
 
 
-def update_alpha(
+def update(
     batch,
     actor,
     log_alpha,
-    target_entropy,
+    hyp,
     optimizer,
     counters,
     writer
 ):
+    target_entropy = hyp['target-entropy']
     obs = batch['observation']
     _, log_prob, _ = actor(obs)
 

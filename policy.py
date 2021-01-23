@@ -11,7 +11,9 @@ log_stdev_low, log_stdev_high = -20, 2
 epsilon = 1e-6
 
 
-def make_policy(env, size_scale=1):
+def make(env, hyp):
+    size_scale = int(hyp['size-scale'])
+
     obs = env.reset().reshape(1, -1)
     obs_shape = obs.shape[1:]
     n_actions = env.action_space.shape[0]
@@ -46,7 +48,7 @@ def make_policy(env, size_scale=1):
     return model
 
 
-def update_policy(
+def update(
     batch,
     actor,
     onlines,
