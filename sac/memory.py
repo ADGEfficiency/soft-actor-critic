@@ -1,3 +1,4 @@
+from pathlib import Path
 import pickle
 
 import numpy as np
@@ -21,7 +22,7 @@ def save(buffer, path):
     with path.open('wb') as fi:
         pickle.dump(buffer, fi)
 
-from pathlib import Path
+
 def load(path):
     path = Path(path)
     print(f'loading buffer from {path}')
@@ -32,7 +33,8 @@ def load(path):
 class Buffer():
     def __init__(self, elements, size=64):
         self.data = {
-            el: np.zeros((size, *shape), dtype=dtype) for el, shape, dtype in elements
+            el: np.zeros((size, *shape), dtype=dtype)
+            for el, shape, dtype in elements
         }
         self.size = size
         self.cursor = 0

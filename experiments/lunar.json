@@ -6,7 +6,7 @@
     "reward-scale": 5,
     "lr": 3e-4,
     "batch-size": 1024,
-    "n-episodes": 500,
+    "n-episodes": 120,
     "test-every": 20,
     "n-tests": 10,
     "size-scale": 6,

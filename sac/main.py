@@ -7,7 +7,7 @@ import click
 
 from sac import alpha
 from sac.env import GymWrapper
-from sac import alpha, buffers, policy, qfunc, random_policy, target, utils
+from sac import alpha, memory, policy, qfunc, random_policy, target, utils
 
 
 def episode(
@@ -193,7 +193,7 @@ def main(hyp):
     paths = utils.get_paths(hyp)
 
     env = GymWrapper(hyp['env-name'])
-    buffer = buffers.make(env, hyp)
+    buffer = memory.make(env, hyp)
 
     writers = {
         'random': utils.Writer('random', counters, paths['run']),
@@ -218,7 +218,7 @@ def main(hyp):
             counters=counters,
             logger=transition_logger
         )
-        buffers.save(buffer, paths['run'] / 'buffers' / 'random.pkl')
+        memory.save(buffer, paths['run'] / 'buffers' / 'random.pkl')
 
     qfunc_optimizers = [
         tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
