@@ -5,8 +5,9 @@ import numpy as np
 import tensorflow as tf
 import click
 
-from sac import alpha
+from sac import alpha, checkpoint, json
 from sac.env import GymWrapper
+
 from sac import alpha, memory, policy, qfunc, random_policy, target, utils
 
 
@@ -75,8 +76,8 @@ def fill_buffer_random_policy(
             logger=logger,
             mode='random'
         )
-
         random_episode_reward = sum(random_episode_reward)
+
         writers['random'].scalar(
             random_episode_reward,
             'random-episode-reward',
@@ -174,7 +175,7 @@ def test(
 
         writers['test'].scalar(
             test_episode_reward,
-            'test-episode-rewards',
+            'test-episode-reward',
             'test-episodes',
             verbose=True
         )
@@ -207,7 +208,7 @@ def main(hyp):
     target_entropy, log_alpha = alpha.make(env, initial_value=hyp['initial-log-alpha'])
 
     hyp['target-entropy'] = float(target_entropy)
-    utils.dump_json(hyp, paths['run'] / 'hyperparameters.json')
+    json.load(hyp, paths['run'] / 'hyperparameters.json')
 
     if not buffer.full:
         buffer = fill_buffer_random_policy(
@@ -218,7 +219,8 @@ def main(hyp):
             counters=counters,
             logger=transition_logger
         )
-        memory.save(buffer, paths['run'] / 'buffers' / 'random.pkl')
+        memory.save(buffer, paths['run'] / 'random.pkl')
+        memory.save(buffer, paths['experiment'] / 'random.pkl')
 
     qfunc_optimizers = [
         tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
@@ -240,7 +242,7 @@ def main(hyp):
                 logger=transition_logger
             )
 
-            utils.checkpoint(
+            checkpoint.save(
                 actor,
                 episode=counters['test-episodes'],
                 rewards=test_rewards,
@@ -308,7 +310,7 @@ def main(hyp):
             logger=transition_logger
         )
 
-        utils.checkpoint(
+        checkpoint.save(
             actor,
             episode=counters['test-episodes'],
             rewards=test_rewards,
@@ -320,14 +322,30 @@ def main(hyp):
 @click.argument("experiment-json", nargs=1)
 @click.option("-n", "--name", default=None)
 @click.option("-b", "--buffer", nargs=1, default="new")
-def cli(experiment_json, name, buffer):
-    print(experiment_json)
+@click.option("-s", "--seed", nargs=1, default=None)
+def cli(experiment_json, name, buffer, seed):
+
+    print('cli')
+    print('------')
+    print(experiment_json, name, buffer)
+    print('')
+
     hyp = utils.load_json(experiment_json)
     hyp['buffer'] = buffer
 
     if name:
         hyp['run-name'] = name
+
+    if not seed:
+        from random import choice
+        seed = choice(range(int(1e4)))
+
+    hyp['seed'] = seed
+    print('params')
+    print('------')
     print(hyp)
+    print('')
+
     sleep(2)
     main(hyp)
 

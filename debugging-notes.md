@@ -53,3 +53,11 @@ changes for next run:
 ## 18-04
 
 looks great - on to the next env
+
+## ??
+
+See old tensorboards
+
+## 01-12
+
+Found mistake with log standard deviation clipping

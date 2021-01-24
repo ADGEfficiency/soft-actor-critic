@@ -1,4 +1,13 @@
+run time
+
 random seeds
+
+obs
+- episode, test & fill buffer random all require running episodes
+- test dosen't
+- what things read & save to disk
+
+Can I start to split based on sampling v labelling v fitting?
 
 what happen when you use a run name twice?
 - remove or iterate?

@@ -1,6 +1,8 @@
 # Soft Actor-Critic 
 
-![](assets/lunar.gif)
+<center>
+<img src="/assets/lunar.gif" width="50%"></a>
+</center>
 
 Reimplementation of the 2018 paper Soft Actor Critic - an off-policy, continuous actor-critic reinforcement learning algorithm.
 
@@ -12,21 +14,33 @@ $ brew install swig
 $ make setup
 ```
 
+If you are running Big Sur, you may have issues with `pyglet` - [see here](https://github.com/openai/gym/issues/2101).
 
-## Use
 
-`Pendulum-v0` - [source](https://github.com/openai/gym/blob/master/gym/envs/classic_control/pendulum.py):
+## Train
 
-![](assets/pendulum.png)
+`Pendulum-v0` - [source](https://github.com/openai/gym/blob/master/gym/envs/classic_control/pendulum.py)
 
 ```bash
 $ sac experiments/pendulum.json
 ```
 
-`LunarLanderContinuous-v2` - [source](https://github.com/openai/gym/blob/master/gym/envs/box2d/lunar_lander.py):
+![](assets/pendulum.png)
+
+
+`LunarLanderContinuous-v2` - [source](https://github.com/openai/gym/blob/master/gym/envs/box2d/lunar_lander.py)
 
 ```bash
 $ sac experiments/lunar.json
+```
+
+![](assets/lunar.png)
+
+
+## Play
+
+```bash
+$ sac/play.py experiments/lunar/run-1
 ```
 
 
@@ -37,7 +51,7 @@ $ sac experiments/lunar.json
 [Haarnoja et. al (2018) Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290) - [pdf](https://arxiv.org/pdf/1801.01290.pdf)
 
 
-### Implementations
+## Implementations
 
 Open AI Spinning Up - TF 1
 

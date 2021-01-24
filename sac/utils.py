@@ -12,17 +12,6 @@ def minimum_target(state, action, targets):
     return tf.reduce_min([t([state, action]) for t in targets], axis=0)
 
 
-def dump_json(data, file):
-    file = str(file)
-    with open(file, 'w') as fi:
-        json.dump(data, fi)
-
-
-def load_json(fi):
-    fi = Path.cwd() / fi
-    return json.loads(fi.read_text())
-
-
 def get_latest_run(experiment):
     runs = [p.name for p in experiment.iterdir() if p.is_dir()]
     runs = [run.split('-')[-1] for run in runs]
@@ -62,20 +51,6 @@ def get_run_name(hyp, experiment):
         run = experiment / f'run-{run}'
 
     return run
-
-
-def checkpoint(actor, episode, rewards, paths):
-    path = paths['run'] / 'checkpoints' / f'test-episode-{episode}'
-    path.mkdir(exist_ok=True, parents=True)
-    actor.save_weights(path / 'actor.h5')
-    dump_json(
-        {
-            'episode': int(episode),
-            'rewards': np.mean(rewards),
-            'reward': list(rewards)
-        },
-        path / 'results.json'
-    )
 
 
 def make_logger(log_file, home):
@@ -118,4 +93,4 @@ class Writer:
             tf.summary.scalar(name, np.mean(value), step=step)
 
         if verbose:
-            print(f'{name} \n step {self.counters[counter]:6.0f}, mu {np.mean(value):5.1f}, sig {np.std(value):5.1f}')
+            print(f'{name} \n {counter} \n {self.counters[counter]:6.0f}, mu {np.mean(value):5.1f}, sig {np.std(value):5.1f}')

@@ -5,9 +5,9 @@ import numpy as np
 
 
 def make(env, hyp):
-    buffer_path = hyp['buffer']
+    buffer_path = hyp.get('buffer')
 
-    if buffer_path == 'new':
+    if (buffer_path == 'new') or (buffer_path is None):
         return Buffer(env.elements, size=hyp['buffer-size'])
 
     else:

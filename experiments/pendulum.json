@@ -8,8 +8,7 @@
     "batch-size": 1024,
     "n-episodes": 80,
     "test-every": 20,
-    "n-tests": 10,
+    "n-tests": 5,
     "size-scale": 3,
-    "env-name": "pendulum",
-    "buffer": "new"
+    "env-name": "pendulum"
 }

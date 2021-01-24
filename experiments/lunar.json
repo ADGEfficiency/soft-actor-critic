@@ -6,9 +6,9 @@
     "reward-scale": 5,
     "lr": 3e-4,
     "batch-size": 1024,
-    "n-episodes": 120,
+    "n-episodes": 200,
     "test-every": 20,
-    "n-tests": 10,
+    "n-tests": 5,
     "size-scale": 6,
     "env-name": "lunar"
 }
