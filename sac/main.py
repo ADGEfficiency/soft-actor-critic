@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import click
 
-from sac import alpha, checkpoint, json
+from sac import alpha, checkpoint, json_util
 from sac.env import GymWrapper
 
 from sac import alpha, memory, policy, qfunc, random_policy, target, utils
@@ -208,7 +208,7 @@ def main(hyp):
     target_entropy, log_alpha = alpha.make(env, initial_value=hyp['initial-log-alpha'])
 
     hyp['target-entropy'] = float(target_entropy)
-    json.load(hyp, paths['run'] / 'hyperparameters.json')
+    json_util.save(hyp, paths['run'] / 'hyperparameters.json')
 
     if not buffer.full:
         buffer = fill_buffer_random_policy(
@@ -330,7 +330,7 @@ def cli(experiment_json, name, buffer, seed):
     print(experiment_json, name, buffer)
     print('')
 
-    hyp = utils.load_json(experiment_json)
+    hyp = json.load(experiment_json)
     hyp['buffer'] = buffer
 
     if name:

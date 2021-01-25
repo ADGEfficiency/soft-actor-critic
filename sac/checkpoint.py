@@ -1,18 +1,20 @@
-import time
+from datetime import datetime
 
-from sac import json
+import numpy as np
+
+from sac import json_util
 
 
 def save(actor, episode, rewards, paths):
     path = paths['run'] / 'checkpoints' / f'test-episode-{episode}'
     path.mkdir(exist_ok=True, parents=True)
     actor.save_weights(path / 'actor.h5')
-    json.save(
+    json_util.save(
         {
             'episode': int(episode),
             'avg-reward': np.mean(rewards),
-            'episode-rewards': list(rewards)
-            'time': time.utcnow().isoformat()
+            'episode-rewards': list(rewards),
+            'time': datetime.utcnow().isoformat()
         },
         path / 'results.json'
     )

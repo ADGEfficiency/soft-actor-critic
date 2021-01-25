@@ -39,6 +39,8 @@ $ sac experiments/lunar.json
 
 ## Play
 
+Will load the best actor based on test rollouts:
+
 ```bash
 $ sac/play.py experiments/lunar/run-1
 ```
