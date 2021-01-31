@@ -1,18 +1,18 @@
-run time
-
+restart from checkpoint
+ 
 random seeds
 
-obs
+Can I start to split based on sampling v labelling v fitting?
 - episode, test & fill buffer random all require running episodes
-- test dosen't
+- train dosen't
+- test & fill buffer should be one function
 - what things read & save to disk
 
-Can I start to split based on sampling v labelling v fitting?
+What happen when you use a run name twice?
+- if same run_name via cli, it will delete
+- other mode is restart!
 
-what happen when you use a run name twice?
-- remove or iterate?
-
-do average of test train rewards separately
+Do average of test train rewards separately
 - maybe keep separate lists (plus one combined)
 
 ideas
@@ -36,3 +36,7 @@ blog post
 
 - explain the a tilde ' = next state action of current pol, a tidle = current state
 policy entropy
+
+features
+- test episodes
+- chekcpoint & restarts

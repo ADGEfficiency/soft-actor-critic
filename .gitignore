@@ -2,7 +2,7 @@
 logs
 debug.log
 data
-experiments/results
+experiments
 old-tensorboards
 monitor
 render.gif

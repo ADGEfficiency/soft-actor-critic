@@ -1,24 +1,73 @@
 from collections import defaultdict
 from time import sleep
+import time
 
+import click
 import numpy as np
 import tensorflow as tf
-import click
 
 from sac import alpha, checkpoint, json_util
+from sac import alpha, memory, policy, qfunc, random_policy, target, utils
 from sac.env import GymWrapper
 
-from sac import alpha, memory, policy, qfunc, random_policy, target, utils
+counters = defaultdict(int)
+
+
+def now():
+    return time.perf_counter()
+
+
+def run_episode(
+    env,
+    buffer,
+    actor,
+    hyp,
+    writers,
+    counters,
+    rewards,
+    mode,
+    logger=None
+):
+    episode_rewards = episode(
+        env,
+        buffer,
+        actor,
+        hyp,
+        writers,
+        counters,
+        rewards,
+        mode,
+        logger=logger
+    )
+    episode_reward = float(sum(episode_rewards))
+
+    rewards['episode-reward'].append(episode_reward)
+    rewards[f'{mode}-reward'].append(episode_reward)
+
+    writers[mode].scalar(
+        episode_reward,
+        f'{mode}-episode-reward',
+        f'{mode}-episodes',
+        verbose=True
+    )
+    writers[mode].scalar(
+        episode_reward,
+        'episode-reward',
+        'episodes'
+    )
+    return episode_rewards
 
 
 def episode(
     env,
     buffer,
-    policy,
+    actor,
     hyp,
-    counters=None,
-    logger=None,
-    mode='train'
+    writers,
+    counters,
+    rewards,
+    mode,
+    logger=None
 ):
     obs = env.reset().reshape(1, -1)
     done = False
@@ -27,7 +76,7 @@ def episode(
     episode_rewards = []
 
     while not done:
-        action, _, deterministic_action = policy(obs)
+        action, _, deterministic_action = actor(obs)
 
         if mode == 'test':
             action = deterministic_action
@@ -47,52 +96,92 @@ def episode(
     counters['episodes'] += 1
     counters[f'{mode}-episodes'] += 1
 
-    return buffer, episode_rewards
+    return episode_rewards
 
 
-def last_100_episode_rewards(rewards):
-    last = rewards[-100:]
-    return sum(last) / len(last)
-
-
-def fill_buffer_random_policy(
+def sample_random(
     env,
     buffer,
     hyp,
     writers,
     counters,
+    rewards,
     logger,
 ):
+    mode = 'random'
     print(f"filling buffer with {buffer.size} samples")
     policy = random_policy.make(env)
 
     while not buffer.full:
-        buffer, random_episode_reward  = episode(
+        run_episode(
             env,
             buffer,
             policy,
             hyp,
-            counters=counters,
-            logger=logger,
-            mode='random'
-        )
-        random_episode_reward = sum(random_episode_reward)
-
-        writers['random'].scalar(
-            random_episode_reward,
-            'random-episode-reward',
-            'random-episodes',
-            verbose=True
-        )
-        writers['random'].scalar(
-            random_episode_reward,
-            'episode-reward',
-            'episodes'
+            writers,
+            counters,
+            rewards,
+            mode,
+            logger=logger
         )
 
     assert len(buffer) == buffer.size
     print(f"buffer filled with {len(buffer)} samples\n")
     return buffer
+
+
+def sample_test(
+    env,
+    buffer,
+    actor,
+    hyp,
+    writers,
+    counters,
+    rewards,
+    logger,
+):
+    mode = 'test'
+    test_results = []
+    for _ in range(hyp['n-tests']):
+
+        test_rewards = run_episode(
+            env,
+            buffer,
+            actor,
+            hyp,
+            writers,
+            counters,
+            rewards,
+            mode,
+            logger=logger
+        )
+        test_results.append(sum(test_rewards))
+
+    return test_results
+
+
+def sample_train(
+    env,
+    buffer,
+    actor,
+    hyp,
+    writers,
+    counters,
+    rewards,
+    logger,
+):
+    mode = 'train'
+    return run_episode(
+        env,
+        buffer,
+        actor,
+        hyp,
+        writers,
+        counters,
+        rewards,
+        mode,
+        logger=logger
+    )
 
 
 def train(
@@ -102,12 +191,11 @@ def train(
     targets,
     log_alpha,
     writer,
-    qfunc_optimizers,
-    pol_optimizer,
-    alpha_optimizer,
+    optimizers,
     counters,
     hyp
 ):
+    st = now()
     qfunc.update(
         batch,
         actor,
@@ -115,11 +203,13 @@ def train(
         targets,
         log_alpha,
         writer,
-        qfunc_optimizers,
+        [optimizers['online-1'], optimizers['online-2']],
         counters,
         hyp
     )
+    counters['q-func-update-seconds'] = now() - st
 
+    st = now()
     policy.update(
         batch,
         actor,
@@ -127,214 +217,197 @@ def train(
         targets,
         log_alpha,
         writer,
-        pol_optimizer,
+        optimizers['actor'],
         counters
     )
+    counters['pol-func-update-seconds'] = now() - st
 
+    st = now()
     target.update(
         onlines,
         targets,
         hyp,
         counters
     )
+    counters['target-update-seconds'] = now() - st
 
+    st = now()
     alpha.update(
         batch,
         actor,
         log_alpha,
         hyp,
-        alpha_optimizer,
+        optimizers['alpha'],
         counters,
         writer
     )
+    counters['alpha-update-seconds'] = now() - st
+
     counters['train-steps'] += 1
 
 
-def test(
-    env,
-    buffer,
-    actor,
-    writers,
-    counters,
-    hyp,
-    logger,
-):
-    test_results = []
-    for _ in range(hyp['n-tests']):
-        buffer, test_episode_reward = episode(
-            env,
-            buffer,
-            actor,
-            hyp,
-            counters,
-            logger,
-            mode='test'
-        )
-        test_episode_reward = float(sum(test_episode_reward))
-        test_results.append(test_episode_reward)
+def init_nets(env, hyp):
+    actor = policy.make(env, hyp)
+    onlines, targets = qfunc.make(env, size_scale=hyp['size-scale'])
+    target_entropy, log_alpha = alpha.make(env, initial_value=hyp['initial-log-alpha'])
+    return {
+        'actor': actor,
+        'online-1': onlines[0],
+        'online-2': onlines[1],
+        'target-1': targets[0],
+        'target-2': targets[1],
+        'target_entropy': float(target_entropy),
+        'alpha': log_alpha,
+    }
 
-        writers['test'].scalar(
-            test_episode_reward,
-            'test-episode-reward',
-            'test-episodes',
-            verbose=True
-        )
-        writers['test'].scalar(
-            test_episode_reward,
-            'episode-reward',
-            'episodes'
-        )
 
-    return test_results
+def init_writers(counters, paths):
+    return {
+        'random': utils.Writer('random', counters, paths['run']),
+        'test': utils.Writer('test', counters, paths['run']),
+        'train': utils.Writer('train', counters, paths['run'])
+    }
+
+
+def init_optimizers(hyp):
+    return {
+        'online-1': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+        'online-2': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+        'actor': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+        'alpha': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+    }
 
 
 def main(hyp):
-    counters = defaultdict(int)
-
     paths = utils.get_paths(hyp)
 
     env = GymWrapper(hyp['env-name'])
     buffer = memory.make(env, hyp)
 
-    writers = {
-        'random': utils.Writer('random', counters, paths['run']),
-        'test': utils.Writer('test', counters, paths['run']),
-        'train': utils.Writer('train', counters, paths['run'])
-    }
+    nets = init_nets(env, hyp)
+    writers = init_writers(counters, paths)
+    optimizers = init_optimizers(hyp)
+
     transition_logger = utils.make_logger('transitions.data', paths['run'])
 
-    actor = policy.make(env, hyp)
-    onlines, targets = qfunc.make(env, size_scale=hyp['size-scale'])
-    target_entropy, log_alpha = alpha.make(env, initial_value=hyp['initial-log-alpha'])
-
-    hyp['target-entropy'] = float(target_entropy)
+    target_entropy = nets.pop('target_entropy')
+    hyp['target-entropy'] = target_entropy
     json_util.save(hyp, paths['run'] / 'hyperparameters.json')
 
+    rewards = defaultdict(list)
     if not buffer.full:
-        buffer = fill_buffer_random_policy(
+        sample_random(
             env,
             buffer,
             hyp,
-            writers=writers,
-            counters=counters,
-            logger=transition_logger
+            writers,
+            counters,
+            rewards,
+            transition_logger,
         )
         memory.save(buffer, paths['run'] / 'random.pkl')
         memory.save(buffer, paths['experiment'] / 'random.pkl')
 
-    qfunc_optimizers = [
-        tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
-        for _ in range(2)
-    ]
-    pol_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
-    alpha_optimizer = tf.keras.optimizers.Adam(learning_rate=hyp['lr'])
-
-    rewards = []
+    rewards = defaultdict(list)
     for _ in range(int(hyp['n-episodes'])):
         if counters['train-episodes'] % hyp['test-every'] == 0:
-            test_rewards = test(
+            test_rewards = sample_test(
                 env,
                 buffer,
-                actor,
+                nets['actor'],
+                hyp,
                 writers,
                 counters,
-                hyp,
-                logger=transition_logger
+                rewards,
+                transition_logger
             )
 
             checkpoint.save(
-                actor,
+                hyp,
+                nets,
+                optimizers,
+                buffer,
                 episode=counters['test-episodes'],
-                rewards=test_rewards,
+                rewards=rewards,
+                counters=counters,
                 paths=paths
             )
 
-        buffer, train_rewards = episode(
-            env,
-            buffer,
-            actor,
-            hyp,
-            counters,
-            logger=transition_logger,
-            mode='train',
-        )
-        print('')
-        train_steps = len(train_rewards)
-
-        train_rewards = sum(train_rewards)
-        rewards.append(train_rewards)
-
         writers['train'].scalar(
-            train_rewards,
-            'train-episode-reward',
-            'train-episodes',
-            verbose=True
-        )
-        writers['train'].scalar(
-            train_rewards,
-            'episode-reward',
-            'episodes'
-        )
-
-        writers['train'].scalar(
-            last_100_episode_rewards(rewards),
+            utils.last_100_episode_rewards(rewards['episode-reward']),
             'last-100-episode-rewards',
             'episodes'
         )
+
+        train_rewards = sample_train(
+            env,
+            buffer,
+            nets['actor'],
+            hyp,
+            writers,
+            counters,
+            rewards,
+            transition_logger
+        )
+        train_steps = len(train_rewards)
 
         print(f'training \n step {counters["train-steps"]:6.0f}, {train_steps} steps')
         for _ in range(train_steps):
             batch = buffer.sample(hyp['batch-size'])
             train(
                 batch,
-                actor,
-                onlines,
-                targets,
-                log_alpha,
+                nets['actor'],
+                [nets['online-1'], nets['online-2']],
+                [nets['target-1'], nets['target-2']],
+                nets['alpha'],
                 writers['train'],
-                qfunc_optimizers,
-                pol_optimizer,
-                alpha_optimizer,
+                optimizers,
                 counters,
                 hyp
             )
 
     if counters['train-episodes'] % hyp['test-every'] == 0:
-        test_rewards = test(
+        test_rewards = sample_test(
             env,
             buffer,
-            actor,
+            nets['actor'],
+            hyp,
             writers,
             counters,
-            hyp,
-            logger=transition_logger
+            rewards,
+            transition_logger
         )
 
         checkpoint.save(
-            actor,
+            hyp,
+            nets,
+            optimizers,
+            buffer,
             episode=counters['test-episodes'],
-            rewards=test_rewards,
+            rewards=rewards,
+            counters=counters,
             paths=paths
         )
 
 
 @click.command()
 @click.argument("experiment-json", nargs=1)
-@click.option("-n", "--name", default=None)
+@click.option("-n", "--run-name", default=None)
 @click.option("-b", "--buffer", nargs=1, default="new")
 @click.option("-s", "--seed", nargs=1, default=None)
-def cli(experiment_json, name, buffer, seed):
+@click.option("-c", "--checkpoint", nargs=1, default=None)
+def cli(experiment_json, run_name, buffer, seed, checkpoint):
 
     print('cli')
     print('------')
-    print(experiment_json, name, buffer)
+    print(experiment_json, run_name, buffer)
     print('')
 
-    hyp = json.load(experiment_json)
+    hyp = json_util.load(experiment_json)
     hyp['buffer'] = buffer
 
-    if name:
-        hyp['run-name'] = name
+    if run_name:
+        hyp['run-name'] = run_name
 
     if not seed:
         from random import choice
@@ -347,7 +420,13 @@ def cli(experiment_json, name, buffer, seed):
     print('')
 
     sleep(2)
-    main(hyp)
+
+    if checkpoint:
+        checkpoint = checkpoint.load(checkpoint)
+        import pdb; pdb.set_trace()
+
+    else:
+        main(hyp)
 
 
 if __name__ == '__main__':

@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 import imageio
 
-from sac import checkpoint, policy, utils
+from sac import checkpoint, policy, utils, json_util
 from sac.env import GymWrapper, env_ids
-from sac.utils import get_paths, get_latest_run, load_json
+from sac.utils import get_paths, get_latest_run
 from sac import utils
 
 import numpy as np
@@ -14,12 +14,16 @@ import numpy as np
 
 
 def checkpoint_pipeline(checkpoints):
-    results = defaultdict(list)
+    out = []
     for path in checkpoints:
-        checkpoint = json.loads((path / 'results.json').read_text())
-        results['reward'].append(checkpoint['avg-reward'])
-        results['checkpoint'].append(path)
-    return results
+        checkpoint = {}
+        checkpoint['path'] = path
+
+        checkpoint['results'] = json.loads((path / 'results.json').read_text())
+        checkpoint['counters'] = json.loads((path / 'counters.json').read_text())
+
+        out.append(checkpoint)
+    return out
 
 
 def get_best_checkpoint(checkpoints):
@@ -38,7 +42,7 @@ if __name__ == '__main__':
     checkpoint = get_best_checkpoint(checkpoints)
     print(checkpoint.keys())
 
-    hyp = load_json(Path(run) / 'hyperparameters.json')
+    hyp = json_utils.load(Path(run) / 'hyperparameters.json')
     env = GymWrapper('lunar')
 
     actor = policy.make(env, hyp)

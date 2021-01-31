@@ -22,7 +22,7 @@ If you are running Big Sur, you may have issues with `pyglet` - [see here](https
 `Pendulum-v0` - [source](https://github.com/openai/gym/blob/master/gym/envs/classic_control/pendulum.py)
 
 ```bash
-$ sac experiments/pendulum.json
+$ sac benchmarks/pendulum.json
 ```
 
 ![](assets/pendulum.png)
@@ -31,7 +31,7 @@ $ sac experiments/pendulum.json
 `LunarLanderContinuous-v2` - [source](https://github.com/openai/gym/blob/master/gym/envs/box2d/lunar_lander.py)
 
 ```bash
-$ sac experiments/lunar.json
+$ sac benchmarks/lunar.json
 ```
 
 ![](assets/lunar.png)

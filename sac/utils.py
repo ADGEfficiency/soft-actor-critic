@@ -8,6 +8,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 
 
+def last_100_episode_rewards(rewards):
+    last = rewards[-100:]
+    return sum(last) / len(last)
+
+
 def minimum_target(state, action, targets):
     return tf.reduce_min([t([state, action]) for t in targets], axis=0)
 
@@ -25,7 +30,7 @@ def get_latest_run(experiment):
 
 def get_paths(hyp):
     #  experiments/results/EXPTNAME/RUNNAME
-    results = Path.cwd() / 'experiments' / 'results'
+    results = Path.cwd() / 'experiments'
     experiment = results / hyp['env-name']
     experiment.mkdir(exist_ok=True, parents=True)
     run = get_run_name(hyp, experiment)
@@ -44,6 +49,13 @@ def get_run_name(hyp, experiment):
     if 'run-name' in hyp.keys():
         #  experiments/results/lunar/test
         run = experiment / hyp['run-name']
+        #  TODO CHECK AND DELETE!
+
+        run_path = Path(run)
+        if run_path.exists():
+            import shutil
+            print(f'DELETING {run_path}\n')
+            shutil.rmtree(str(run_path))
 
     else:
         #  experiments/results/lunar/run-0
