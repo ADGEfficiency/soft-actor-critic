@@ -49,13 +49,11 @@ def get_run_name(hyp, experiment):
     if 'run-name' in hyp.keys():
         #  experiments/results/lunar/test
         run = experiment / hyp['run-name']
-        #  TODO CHECK AND DELETE!
-
-        run_path = Path(run)
-        if run_path.exists():
-            import shutil
-            print(f'DELETING {run_path}\n')
-            shutil.rmtree(str(run_path))
+        # run_path = Path(run)
+        # if run_path.exists():
+        #     import shutil
+        #     print(f'DELETING {run_path}\n')
+        #     shutil.rmtree(str(run_path))
 
     else:
         #  experiments/results/lunar/run-0

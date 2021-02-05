@@ -12,23 +12,17 @@ from sac import utils
 import numpy as np
 
 
-
-def checkpoint_pipeline(checkpoints):
-    out = []
-    for path in checkpoints:
-        checkpoint = {}
-        checkpoint['path'] = path
-
-        checkpoint['results'] = json.loads((path / 'results.json').read_text())
-        checkpoint['counters'] = json.loads((path / 'counters.json').read_text())
-
-        out.append(checkpoint)
-    return out
-
-
 def get_best_checkpoint(checkpoints):
-    best = np.argmax(checkpoints['episode-reward'])
-    return checkpoints['checkpoint'][best]
+    n_test_episodes = checkpoints[0]['hyp']['n-tests']
+
+    rews = [np.mean(c['rewards']['test-reward'][-n_test_episodes:]) for c in checkpoints]
+    best = np.argmax(rews)
+    best = checkpoints[best]
+    path = best['path']
+    print(f'\nfound best\n {path}')
+    import pdb; pdb.set_trace()
+    print(best)
+    return best
 
 
 if __name__ == '__main__':
@@ -38,15 +32,13 @@ if __name__ == '__main__':
     run_path = args.run
 
     checkpoints = checkpoint.load(run_path)
-    checkpoints = checkpoint_pipeline(checkpoints)
     checkpoint = get_best_checkpoint(checkpoints)
     print(checkpoint.keys())
 
-    hyp = json_utils.load(Path(run) / 'hyperparameters.json')
+    hyp = checkpoint['hyp']
     env = GymWrapper('lunar')
 
-    actor = policy.make(env, hyp)
-    actor.load_weights(checkpoint / 'actor.h5')
+    actor = checkpoint['nets']['actor']
 
     env.reset()
     obs = env.reset().reshape(1, -1)

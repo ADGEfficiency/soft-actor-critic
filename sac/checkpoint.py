@@ -65,6 +65,7 @@ def load(run):
 
 
 def load_checkpoint(path):
+    path = Path(path)
 
     hyp = json_util.load(path / 'hyperparameters.json')
     env = GymWrapper(hyp['env-name'])

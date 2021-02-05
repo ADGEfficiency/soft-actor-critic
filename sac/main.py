@@ -10,11 +10,99 @@ from sac import alpha, checkpoint, json_util
 from sac import alpha, memory, policy, qfunc, random_policy, target, utils
 from sac.env import GymWrapper
 
-counters = defaultdict(int)
 
 
 def now():
     return time.perf_counter()
+
+
+def init_nets(env, hyp):
+    actor = policy.make(env, hyp)
+    onlines, targets = qfunc.make(env, size_scale=hyp['size-scale'])
+    target_entropy, log_alpha = alpha.make(env, initial_value=hyp['initial-log-alpha'])
+    return {
+        'actor': actor,
+        'online-1': onlines[0],
+        'online-2': onlines[1],
+        'target-1': targets[0],
+        'target-2': targets[1],
+        'target_entropy': float(target_entropy),
+        'alpha': log_alpha,
+    }
+
+
+def init_writers(counters, paths):
+    return {
+        'random': utils.Writer('random', counters, paths['run']),
+        'test': utils.Writer('test', counters, paths['run']),
+        'train': utils.Writer('train', counters, paths['run'])
+    }
+
+
+def init_optimizers(hyp):
+    return {
+        'online-1': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+        'online-2': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+        'actor': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+        'alpha': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
+    }
+
+
+def init_fresh(hyp):
+    counters = defaultdict(int)
+    paths = utils.get_paths(hyp)
+
+    env = GymWrapper(hyp['env-name'])
+    buffer = memory.make(env, hyp)
+
+    nets = init_nets(env, hyp)
+    writers = init_writers(counters, paths)
+    optimizers = init_optimizers(hyp)
+
+    transition_logger = utils.make_logger('transitions.data', paths['run'])
+
+    target_entropy = nets.pop('target_entropy')
+    hyp['target-entropy'] = target_entropy
+
+    rewards = defaultdict(list)
+    return {
+        'hyp': hyp,
+        'paths': paths,
+        'counters': counters,
+        'env': env,
+        'buffer': buffer,
+        'nets': nets,
+        'writers': writers,
+        'optimizers': optimizers,
+        'transition_logger': transition_logger,
+        'rewards': rewards
+    }
+
+
+def init_checkpoint(checkpoint_path):
+    point = checkpoint.load_checkpoint(checkpoint_path)
+    hyp = point['hyp']
+    paths = utils.get_paths(hyp)
+    counters = point['counters']
+
+    writers = init_writers(counters, paths)
+
+    transition_logger = utils.make_logger('transitions.data', paths['run'])
+    c = point
+
+    rewards = point['rewards']
+    return {
+        'hyp': hyp,
+        'paths': paths,
+        'counters': counters,
+        'env': c['env'],
+        'buffer': c['buffer'],
+        'nets': c['nets'],
+        'writers': writers,
+        'optimizers': c['optimizers'],
+        'transition_logger': transition_logger,
+        'rewards': rewards
+    }
 
 
 def run_episode(
@@ -246,55 +334,20 @@ def train(
     counters['train-steps'] += 1
 
 
-def init_nets(env, hyp):
-    actor = policy.make(env, hyp)
-    onlines, targets = qfunc.make(env, size_scale=hyp['size-scale'])
-    target_entropy, log_alpha = alpha.make(env, initial_value=hyp['initial-log-alpha'])
-    return {
-        'actor': actor,
-        'online-1': onlines[0],
-        'online-2': onlines[1],
-        'target-1': targets[0],
-        'target-2': targets[1],
-        'target_entropy': float(target_entropy),
-        'alpha': log_alpha,
-    }
-
-
-def init_writers(counters, paths):
-    return {
-        'random': utils.Writer('random', counters, paths['run']),
-        'test': utils.Writer('test', counters, paths['run']),
-        'train': utils.Writer('train', counters, paths['run'])
-    }
-
-
-def init_optimizers(hyp):
-    return {
-        'online-1': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
-        'online-2': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
-        'actor': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
-        'alpha': tf.keras.optimizers.Adam(learning_rate=hyp['lr']),
-    }
-
-
-def main(hyp):
-    paths = utils.get_paths(hyp)
-
-    env = GymWrapper(hyp['env-name'])
-    buffer = memory.make(env, hyp)
-
-    nets = init_nets(env, hyp)
-    writers = init_writers(counters, paths)
-    optimizers = init_optimizers(hyp)
-
-    transition_logger = utils.make_logger('transitions.data', paths['run'])
-
-    target_entropy = nets.pop('target_entropy')
-    hyp['target-entropy'] = target_entropy
+def main(
+    hyp,
+    paths,
+    counters,
+    env,
+    buffer,
+    nets,
+    writers,
+    optimizers,
+    transition_logger,
+    rewards
+):
     json_util.save(hyp, paths['run'] / 'hyperparameters.json')
 
-    rewards = defaultdict(list)
     if not buffer.full:
         sample_random(
             env,
@@ -395,8 +448,8 @@ def main(hyp):
 @click.option("-n", "--run-name", default=None)
 @click.option("-b", "--buffer", nargs=1, default="new")
 @click.option("-s", "--seed", nargs=1, default=None)
-@click.option("-c", "--checkpoint", nargs=1, default=None)
-def cli(experiment_json, run_name, buffer, seed, checkpoint):
+@click.option("-c", "--checkpoint_path", nargs=1, default=None)
+def cli(experiment_json, run_name, buffer, seed, checkpoint_path):
 
     print('cli')
     print('------')
@@ -418,15 +471,17 @@ def cli(experiment_json, run_name, buffer, seed, checkpoint):
     print('------')
     print(hyp)
     print('')
-
     sleep(2)
 
-    if checkpoint:
-        checkpoint = checkpoint.load(checkpoint)
-        import pdb; pdb.set_trace()
+    if checkpoint_path:
+        print(f'checkpointing from {checkpoint_path}')
+        print('')
+        main(**init_checkpoint(checkpoint_path))
 
     else:
-        main(hyp)
+        print(f'starting so fresh, so clean')
+        print('')
+        main(**init_fresh(hyp))
 
 
 if __name__ == '__main__':

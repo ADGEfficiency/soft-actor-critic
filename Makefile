@@ -1,9 +1,11 @@
+.PHONY: tests
+
 setup:
 	pip install -r requirements.txt
 	pip install .
 
-test:
+tests:
 	pytest tests --tb=line --disable-pytest-warnings
 
 tensorboard:
-	tensorboard --logdir experiments/results > /dev/null 2>&1 &
+	tensorboard --logdir experiments
