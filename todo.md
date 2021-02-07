@@ -1,5 +1,3 @@
-restart from checkpoint
- 
 random seeds
 
 Can I start to split based on sampling v labelling v fitting?
@@ -7,10 +5,6 @@ Can I start to split based on sampling v labelling v fitting?
 - train dosen't
 - test & fill buffer should be one function
 - what things read & save to disk
-
-What happen when you use a run name twice?
-- if same run_name via cli, it will delete
-- other mode is restart!
 
 blog post
 

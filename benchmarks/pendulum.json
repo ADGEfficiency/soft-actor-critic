@@ -10,5 +10,6 @@
     "test-every": 20,
     "n-tests": 5,
     "size-scale": 3,
-    "env-name": "pendulum"
+    "env-name": "pendulum",
+    "run-name": "benchmark"
 }

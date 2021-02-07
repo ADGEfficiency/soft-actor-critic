@@ -14,14 +14,11 @@ import numpy as np
 
 def get_best_checkpoint(checkpoints):
     n_test_episodes = checkpoints[0]['hyp']['n-tests']
-
     rews = [np.mean(c['rewards']['test-reward'][-n_test_episodes:]) for c in checkpoints]
     best = np.argmax(rews)
     best = checkpoints[best]
     path = best['path']
-    print(f'\nfound best\n {path}')
-    import pdb; pdb.set_trace()
-    print(best)
+    print(f'\nfound best checkpoint at {path}')
     return best
 
 

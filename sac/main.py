@@ -1,4 +1,5 @@
 from collections import defaultdict
+import random
 from time import sleep
 import time
 
@@ -332,6 +333,12 @@ def train(
     counters['alpha-update-seconds'] = now() - st
 
     counters['train-steps'] += 1
+
+
+def set_seeds(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.seed(seed)
 
 
 def main(

@@ -36,6 +36,10 @@ $ sac benchmarks/lunar.json
 
 ![](assets/lunar.png)
 
+Notes
+- if you enter the same run name via `-n`, program will ask if you want to delete
+- if no run name entered, new run will be created at `run-n`, where `n` = last run number + 1
+
 
 ## Play
 
