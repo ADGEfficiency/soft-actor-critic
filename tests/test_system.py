@@ -1,4 +1,8 @@
 from sac.main import main
+from sac.init import init_fresh
+
+from pathlib import Path
+from shutil import rmtree
 
 
 hyp = {
@@ -15,12 +19,13 @@ hyp = {
     'size-scale': 1,
     'env-name': 'pendulum',
     'run-name': 'test-system',
+    'delete-previous': True,
     'buffer': 'new'
 }
 
 
 def test_system():
-    main(hyp)
+    main(**init_fresh(hyp))
 
 
 if __name__ == '__main__':

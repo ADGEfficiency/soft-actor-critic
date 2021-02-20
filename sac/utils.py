@@ -2,10 +2,22 @@ import json
 import logging
 import os
 from pathlib import Path
+import random
+import time
 
 import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
+
+
+def now():
+    return time.perf_counter()
+
+
+def set_seeds(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
 
 
 def last_100_episode_rewards(rewards):
@@ -50,18 +62,12 @@ def get_run_name(hyp, experiment):
         #  experiments/results/lunar/test
         run = experiment / hyp['run-name']
         run_path = Path(run)
-        if run_path.exists():
-            print(f'{run_path} already exists')
-            print(f'OK to delete? [y/n]')
-            answer = input()
-            if answer == 'y':
-                import shutil
-                print(f'deleting {run_path}\n')
-                shutil.rmtree(str(run_path))
-            else:
-                print('exiting program')
-                import sys
-                sys.exit()
+        if run_path.exists() and hyp['delete-previous']:
+            import shutil
+            print(f'deleting {run_path}\n')
+            shutil.rmtree(str(run_path))
+        else:
+            raise ValueError()
 
     else:
         #  experiments/results/lunar/run-0
