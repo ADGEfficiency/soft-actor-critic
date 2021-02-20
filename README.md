@@ -4,7 +4,13 @@
 <img src="/assets/lunar.gif" width="50%"></a>
 </center>
 
-Reimplementation of the 2018 paper Soft Actor Critic - an off-policy, continuous actor-critic reinforcement learning algorithm.
+Reimplementation of the 2018 paper Soft Actor Critic - an off-policy, continuous actor-critic reinforcement learning algorithm, with:
+
+- implementation in Tensorflow 2.0
+- restart from checkpoint
+- evaluate best checkpoint
+- logging in Tensorboard
+- tested on Pendulum and LunarLanderContinuous
 
 
 ## Setup
@@ -27,7 +33,6 @@ $ sac benchmarks/pendulum.json
 
 ![](assets/pendulum.png)
 
-
 `LunarLanderContinuous-v2` - [source](https://github.com/openai/gym/blob/master/gym/envs/box2d/lunar_lander.py)
 
 ```bash
@@ -43,7 +48,7 @@ Notes
 
 ## Play
 
-Will load the best actor based on test rollouts:
+Will load the best actor checkpoint based on average test rollouts rewards:
 
 ```bash
 $ sac/play.py experiments/lunar/run-1
@@ -57,7 +62,7 @@ $ sac/play.py experiments/lunar/run-1
 [Haarnoja et. al (2018) Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290) - [pdf](https://arxiv.org/pdf/1801.01290.pdf)
 
 
-## Implementations
+## Other Implementations
 
 Open AI Spinning Up - TF 1
 
