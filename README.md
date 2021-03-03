@@ -7,8 +7,8 @@
 Reimplementation of the 2018 paper Soft Actor Critic - an off-policy, continuous actor-critic reinforcement learning algorithm, with:
 
 - implementation in Tensorflow 2.0
-- restart from checkpoint
-- evaluate best checkpoint
+- test episodes
+- checkpoints & restarts
 - logging in Tensorboard
 - tested on Pendulum and LunarLanderContinuous
 
