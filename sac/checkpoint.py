@@ -8,6 +8,7 @@ import numpy as np
 
 from sac import json_util, memory, registry
 
+from sac.init import init_nets, init_optimizers
 
 def save(
     hyp,
@@ -67,9 +68,8 @@ def load_checkpoint(path):
     path = Path(path)
 
     hyp = json_util.load(path / 'hyperparameters.json')
-    env = registry.make(hyp['env-name'])
+    env = registry.make(**hyp['env'])
 
-    from sac.main import init_nets, init_optimizers
     nets = init_nets(env, hyp)
     #  awkward
     nets.pop('target_entropy')

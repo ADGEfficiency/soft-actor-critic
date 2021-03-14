@@ -9,3 +9,6 @@ test:
 
 tensorboard:
 	tensorboard --logdir experiments
+
+monitor:
+	jupyter lab

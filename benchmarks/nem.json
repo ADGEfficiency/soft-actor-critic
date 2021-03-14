@@ -11,7 +11,8 @@
     "n-tests": 5,
     "size-scale": 6,
     "env": {
-      "name": "battery"
+      "name": "battery",
+      "initial_charge": 1.0
     },
     "dataset": {
       "name": "nem-dataset",
