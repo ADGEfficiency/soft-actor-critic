@@ -1,10 +1,10 @@
-.PHONY: tests
+.PHONY: test
 
 setup:
 	pip install -r requirements.txt
 	pip install .
 
-tests:
+test:
 	pytest tests --tb=line --disable-pytest-warnings
 
 tensorboard:

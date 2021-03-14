@@ -5,9 +5,8 @@ from pathlib import Path
 import imageio
 
 from sac import checkpoint, policy, utils, json_util
-from sac.env import GymWrapper, env_ids
 from sac.utils import get_paths, get_latest_run
-from sac import utils
+from sac import utils, registry
 
 import numpy as np
 
@@ -33,7 +32,7 @@ if __name__ == '__main__':
     print(checkpoint.keys())
 
     hyp = checkpoint['hyp']
-    env = GymWrapper('lunar')
+    env = registry.make('lunar')
 
     actor = checkpoint['nets']['actor']
 

@@ -1,4 +1,4 @@
-from sac.env import GymWrapper
+from sac.envs.gym_wrappers import GymWrapper
 from sac.random_policy import make as make_random_policy
 
 

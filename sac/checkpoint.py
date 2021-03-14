@@ -6,8 +6,7 @@ import tensorflow as tf
 
 import numpy as np
 
-from sac import json_util, memory
-from sac.env import GymWrapper
+from sac import json_util, memory, registry
 
 
 def save(
@@ -68,7 +67,7 @@ def load_checkpoint(path):
     path = Path(path)
 
     hyp = json_util.load(path / 'hyperparameters.json')
-    env = GymWrapper(hyp['env-name'])
+    env = registry.make(hyp['env-name'])
 
     from sac.main import init_nets, init_optimizers
     nets = init_nets(env, hyp)

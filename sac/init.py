@@ -1,8 +1,7 @@
 from collections import defaultdict
 import tensorflow as tf
 
-from sac import utils, memory, policy, qfunc, alpha
-from sac.env import GymWrapper
+from sac import utils, memory, policy, qfunc, alpha, registry
 
 
 
@@ -42,7 +41,7 @@ def init_fresh(hyp):
     counters = defaultdict(int)
     paths = utils.get_paths(hyp)
 
-    env = GymWrapper(hyp['env-name'])
+    env = registry.make(hyp['env-name'])
     buffer = memory.make(env, hyp)
 
     nets = init_nets(env, hyp)

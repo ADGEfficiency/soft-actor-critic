@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from sac.memory import Buffer
-from sac.env import GymWrapper
+from sac.envs.gym_wrappers import GymWrapper
 from sac.random_policy import make as make_random_policy
 from sac.qfunc import make_qfunc
 from sac.qfunc import update_target_network

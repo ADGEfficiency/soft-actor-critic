@@ -9,7 +9,6 @@ import tensorflow as tf
 
 from sac import alpha, checkpoint, json_util
 from sac import alpha, memory, policy, qfunc, random_policy, target, utils
-from sac.env import GymWrapper
 from sac.sampling import sample_random, sample_test, sample_train
 from sac.train import train
 
