@@ -37,7 +37,7 @@ class GymWrapper():
         if 'lunar' in self.env_id.lower():
             unscaled_action = unscaled_action.reshape(-1)
         next_obs, reward, done, _ = self.env.step(unscaled_action)
-        return next_obs.reshape(1, *self.env.observation_space.shape), reward, done
+        return next_obs.reshape(1, *self.env.observation_space.shape), reward, done, {}
 
     def reset(self):
         return self.env.reset().reshape(1, *self.env.observation_space.shape)

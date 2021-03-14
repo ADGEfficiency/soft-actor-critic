@@ -1,15 +1,19 @@
 from sac.envs.battery import *
-from sac.envs.parallel_battery import *
+from sac.envs.many_battery import *
 from sac.envs.gym_wrappers import GymWrapper
+
+from sac.datasets import *
 
 
 registry = {
-    'battery': Battery,
-    'random-dataset': make_random_dataset,
-    'many-battery': ManyBatteries,
-
     'lunar': GymWrapper,
     'pendulum': GymWrapper,
+
+    'battery': Battery,
+    'many-battery': ManyBatteries,
+
+    'random-dataset': RandomDataset,
+    'nem-dataset': NEMDataset,
 }
 
 

@@ -10,5 +10,9 @@
     "test-every": 20,
     "n-tests": 5,
     "size-scale": 6,
-    "env-name": "lunar"
+    "env": {
+      "name": "lunar",
+      "env_name": "lunar"
+    },
+    "run-name": "benchmark"
 }

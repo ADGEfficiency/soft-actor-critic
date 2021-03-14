@@ -17,7 +17,10 @@ hyp = {
     'test-every': 1,
     'n-tests': 1,
     'size-scale': 1,
-    'env-name': 'pendulum',
+    "env": {
+      "name": "pendulum",
+      "env_name": "pendulum"
+    },
     'run-name': 'test-system',
     'delete-previous': True,
     'buffer': 'new'

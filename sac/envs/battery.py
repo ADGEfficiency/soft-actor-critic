@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, namedtuple
 
 import numpy as np
 
@@ -26,35 +25,18 @@ def calculate_losses(delta_charge, efficiency):
     return np.abs(losses)
 
 
-def make_random_dataset(n=1000, n_features=3, n_batteries=1):
-
-    if n_batteries == 1:
-        #  (timestep, features)
-        return {
-            'prices': np.random.uniform(0, 100, n).reshape(n, 1),
-            'features': np.random.uniform(0, 100, n_features*n).reshape(n, n_features)
-        }
-    else:
-        prices = np.random.uniform(0, 100, n).reshape(-1)
-        features = np.random.uniform(0, 100, n*n_features).reshape(n, n_features)
-        return {
-            'prices': prices,
-            'features': features
-        }
-
-def set_battery_config(value, n_batteries):
-    if isinstance(value, list):
-        return np.array(value).reshape(1, n_batteries, 1)
-    else:
-        return np.full((n_batteries, 1), value).reshape(1, n_batteries, 1)
-
-
-
 class BatteryObservationSpace:
-    pass
+    def __init__(self, dataset):
+        self.shape = dataset.dataset['features'].shape[1:]
 
 
 class BatteryActionSpace:
+    def __init__(self, dataset):
+        self.shape = dataset.dataset['prices'].shape[1:]
+        self.low = np.array((-1, ))
+        self.high = np.array((-1, ))
+
+    #  needs the same dataset
     def sample(self):
         return np.random.uniform(0, 1, 1)
 
@@ -67,7 +49,7 @@ class Battery:
         efficiency=0.9,
         initial_charge=0.0,
         episode_length=288,
-        dataset_cfg={'name': 'random-dataset'}
+        dataset_cfg={'name': 'random-dataset', 'n_features': 4}
     ):
         self.power = float(power)
         self.capacity = float(capacity)
@@ -75,32 +57,33 @@ class Battery:
         self.initial_charge = float(initial_charge)
         self.episode_length = int(episode_length)
 
-        self.observation_space = BatteryObservationSpace()
-        self.action_space = BatteryActionSpace()
-
+        #  TODO
         self.dataset = registry.make(**dataset_cfg)
+        self.observation_space = BatteryObservationSpace(self.dataset)
+        self.action_space = BatteryActionSpace(self.dataset)
+
+        self.elements = (
+            ('observation', self.observation_space.shape, 'float32'),
+            ('action', self.action_space.shape, 'float32'),
+            ('reward', (1, ), 'float32'),
+            ('next_observation', self.observation_space.shape, 'float32'),
+            ('done', (1, ), 'bool')
+        )
+        self.Transition = namedtuple('Transition', [el[0] for el in self.elements])
 
     def __repr__(self):
         return f'<energypy Battery: {self.power:2.1f} MW {self.capacity:2.1f} MWh>'
 
-    def get_data(self):
-        return OrderedDict(
-            {k: d[self.cursor] for k, d in self.dataset.items()}
-        )
-
     def reset(self):
         len_dataset = 1000
 
-        #  sample a new start position
-        self.start = np.random.randint(0, len_dataset - self.episode_length, 1)
+        self.start = np.array(0).astype(int)
         self.cursor = np.copy(self.start)
         self.charge = self.initial_charge
 
-        data = self.get_data()
+        data = self.dataset.get_data(self.cursor)
         self.cursor += 1
-        data['charge'] = self.charge
-
-        return data
+        return data['features']
 
     def step(self, action):
         """action > 0 to charge, action < 0 to discharge"""
@@ -150,17 +133,20 @@ class Battery:
             losses
         )
 
-        price = self.dataset['prices'][self.cursor]
-        assert price.shape == (1, 1)
+        price = self.dataset.dataset['prices'][self.cursor]
+        assert price.shape == (1, )
 
         reward = export_energy * price - import_energy * price
 
         self.cursor += 1
-        next_obs = self.get_data()
-        next_obs['charge'] = self.charge
-
+        next_obs = self.dataset.get_data(self.cursor)['features'].reshape(1, -1)
         done = int(self.cursor - self.start) == self.episode_length + 1
 
-        info = {'start': self.start, 'cursor': self.cursor, 'done': done}
+        info = {
+            'start': self.start,
+            'cursor': self.cursor,
+            'done': done,
+            'charge': self.charge
+        }
 
         return next_obs, reward, done, info

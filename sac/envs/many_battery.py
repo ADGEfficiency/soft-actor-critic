@@ -11,6 +11,12 @@ class ManyBatteryActionSpace:
         return True
 
 
+def set_battery_config(value, n_batteries):
+    if isinstance(value, list):
+        return np.array(value).reshape(1, n_batteries, 1)
+    else:
+        return np.full((n_batteries, 1), value).reshape(1, n_batteries, 1)
+
 class ManyBatteries:
     """
     data = (n_battery, timesteps, features)
@@ -46,19 +52,20 @@ class ManyBatteries:
 
         self.action_space = ManyBatteryActionSpace()
 
-    def get_data(self):
-        return OrderedDict(
-            {k: d[self.cursor] for k, d in self.dataset.items()}
-        )
+    # def get_data(self):
+    #     return OrderedDict(
+    #         {k: d[self.cursor] for k, d in self.dataset.items()}
+    #     )
 
     def reset(self):
         len_dataset = 1000
-        self.start = np.random.randint(
-            0, len_dataset - self.episode_length, self.n_batteries
-        )
+        self.start = np.zeros(self.n_batteries).astype(int)
         self.cursor = np.copy(self.start)
         self.charge = self.initial_charge
-        return None
+
+        data = self.dataset.get_data(self.cursor)
+        self.cursor += 1
+        return data['features']
 
     def step(self, action):
         assert action.shape == (1, self.n_batteries, 1)
@@ -89,31 +96,23 @@ class ManyBatteries:
         #  net power is important because this is used for reward
         net_power = gross_power + losses
 
-        price = self.dataset['prices'][self.cursor].reshape(-1, 1, 1)
+        price = self.dataset.dataset['prices'][self.cursor].reshape(-1, 1, 1)
 
         #  all batteries, one timestep, one feature (price)
         assert price.shape == (self.n_batteries, 1, 1)
         reward = -1 * net_power * price
 
         self.cursor += 1
+        next_obs = self.dataset.get_data(self.cursor)['features']
 
-        """
-        needs thinking
-
-        - either data changes (cursor position fixed relative) [0, 0, 0] - cursor could be a single number
-        - or entire dataset, with cursor [5, 9, 22]
-
-        """
-        next_obs = self.get_data()
-        next_obs['charge'] = self.charge
-
-        done = (self.cursor - self.start) == self.episode_length
+        done = (self.cursor - self.start) == self.episode_length + 1
 
         #  useful for logs
         info = {
             'start': self.start,
             'cursor': self.cursor,
-            'done': done
+            'done': done,
+            'charge': self.charge
         }
 
         return next_obs, reward, done, info

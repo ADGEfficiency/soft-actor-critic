@@ -43,7 +43,7 @@ def get_latest_run(experiment):
 def get_paths(hyp):
     #  experiments/results/EXPTNAME/RUNNAME
     results = Path.cwd() / 'experiments'
-    experiment = results / hyp['env-name']
+    experiment = results / hyp['env']['name']
     experiment.mkdir(exist_ok=True, parents=True)
     run = get_run_name(hyp, experiment)
 
@@ -62,7 +62,7 @@ def get_run_name(hyp, experiment):
         #  experiments/results/lunar/test
         run = experiment / hyp['run-name']
         run_path = Path(run)
-        if run_path.exists() and hyp['delete-previous']:
+        if run_path.exists():
             import shutil
             print(f'deleting {run_path}\n')
             shutil.rmtree(str(run_path))

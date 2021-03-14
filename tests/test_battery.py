@@ -4,6 +4,11 @@ import numpy as np
 import pytest
 
 from sac.registry import make
+"""
+- test cursor position (through info dict)
+- test the shapes of obs & action spaces
+
+"""
 
 
 test_cases = (
@@ -36,35 +41,18 @@ def test_one_battery_charging(cfg, actions, charges):
     results = defaultdict(list)
     for action in actions:
         next_obs, reward, done, info = env.step(action)
-        results['charge'].append(next_obs['charge'])
+        results['charge'].append(info['charge'])
 
     assert done
     np.testing.assert_array_almost_equal(results['charge'], charges)
 
 
-def test_make_random_dataset_one_battery():
-    env = make('battery', dataset_cfg={'name': 'random-dataset', 'n': 10000, 'n_features': 3})
-
-    assert env.dataset['prices'].shape[0] == 10000
-    assert env.dataset['features'].shape[0] == 10000
-
-    assert env.dataset['prices'].shape[1] == 1
-    assert env.dataset['features'].shape[1] == 3
-
-
-def test_make_random_dataset_many_battery():
+def test_battery_init():
     env = make(
-        'many-battery',
-        n_batteries=4,
-        dataset_cfg={'name': 'random-dataset', 'n': 1000, 'n_features': 6}
+        'battery',
+        dataset_cfg={'name': 'random-dataset', 'n_features': 16}
     )
-
-    data = env.dataset
-    print(data['prices'].shape, data['features'].shape)
-    assert data['prices'].shape[0] == 1000
-
-    assert data['features'].shape[0] == 1000
-    assert data['features'].shape[1] == 6
+    #  can check shapes of dataset, action space etc
 
 
 def test_many_battery_step():
@@ -98,7 +86,7 @@ def test_many_battery_step():
         action = np.array(action).reshape(1, len(test_cases), 1)
         next_obs, reward, done, info = env.step(action)
         print(env.charge, 'charge')
-        results['charge'].append(next_obs['charge'])
+        results['charge'].append(info['charge'])
 
     assert all(done)
     np.testing.assert_array_almost_equal(

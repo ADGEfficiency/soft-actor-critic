@@ -41,7 +41,7 @@ def init_fresh(hyp):
     counters = defaultdict(int)
     paths = utils.get_paths(hyp)
 
-    env = registry.make(hyp['env-name'])
+    env = registry.make(**hyp['env'])
     buffer = memory.make(env, hyp)
 
     nets = init_nets(env, hyp)

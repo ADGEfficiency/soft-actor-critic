@@ -7,7 +7,7 @@ import click
 import numpy as np
 import tensorflow as tf
 
-from sac import alpha, checkpoint, json_util
+from sac import alpha, checkpoint, json_util, init
 from sac import alpha, memory, policy, qfunc, random_policy, target, utils
 from sac.sampling import sample_random, sample_test, sample_train
 from sac.train import train
@@ -157,12 +157,12 @@ def cli(experiment_json, run_name, buffer, seed, checkpoint_path):
     if checkpoint_path:
         print(f'checkpointing from {checkpoint_path}')
         print('')
-        main(**init_checkpoint(checkpoint_path))
+        main(**init.init_checkpoint(checkpoint_path))
 
     else:
         print(f'starting so fresh, so clean')
         print('')
-        main(**init_fresh(hyp))
+        main(**init.init_fresh(hyp))
 
 
 if __name__ == '__main__':
