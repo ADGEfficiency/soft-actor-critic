@@ -33,18 +33,20 @@ test_cases = (
 )
 
 
-@pytest.mark.parametrize('cfg, actions, charges', test_cases)
-def test_one_battery_charging(cfg, actions, charges):
-    env = make('battery', **cfg)
+@pytest.mark.parametrize('cfg, actions, expected_charges', test_cases)
+def test_one_battery_charging(cfg, actions, expected_charges):
+    env = make('battery', **cfg, n_batteries=1)
     env.reset()
 
     results = defaultdict(list)
     for action in actions:
+        action = np.array(action).reshape(1, 1, 1)
         next_obs, reward, done, info = env.step(action)
         results['charge'].append(info['charge'])
 
     assert done
-    np.testing.assert_array_almost_equal(results['charge'], charges)
+    charges = np.squeeze(np.array(results['charge']))
+    np.testing.assert_array_almost_equal(charges, expected_charges)
 
 
 def test_battery_init():
@@ -56,7 +58,6 @@ def test_battery_init():
 
 
 def test_many_battery_step():
-
     cfgs = defaultdict(list)
 
     actions, charges = [], []
@@ -74,7 +75,7 @@ def test_many_battery_step():
     actions = np.array(actions).T
     expected_charges = np.array(charges).T
 
-    env = make('many-battery', n_batteries=len(test_cases), **cfgs)
+    env = make('battery', n_batteries=len(test_cases), **cfgs)
 
     #  test 1
     np.testing.assert_array_equal(cfgs['power'], env.power[0, :, 0])
@@ -88,7 +89,7 @@ def test_many_battery_step():
         print(env.charge, 'charge')
         results['charge'].append(info['charge'])
 
-    assert all(done)
+    assert done.all()
     np.testing.assert_array_almost_equal(
         np.squeeze(results['charge']),
         np.squeeze(expected_charges)

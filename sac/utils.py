@@ -66,15 +66,14 @@ def get_run_name(hyp, experiment):
             import shutil
             print(f'deleting {run_path}\n')
             shutil.rmtree(str(run_path))
-        else:
-            raise ValueError()
+            return run_path
 
     else:
         #  experiments/results/lunar/run-0
         run = int(get_latest_run(experiment)) + 1
-        run = experiment / f'run-{run}'
+        run_path = experiment / f'run-{run}'
 
-    return run
+    return run_path
 
 
 def make_logger(log_file, home):

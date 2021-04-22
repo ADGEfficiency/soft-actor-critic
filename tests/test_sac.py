@@ -43,7 +43,7 @@ def test_pendulum_wrapper():
     res = env.reset()
     assert res.shape == (1, 3)
     act = env.action_space.sample().reshape(1, 1)
-    next_obs, rew, done = env.step(act)
+    next_obs, rew, done, _ = env.step(act)
     assert next_obs.shape == (1, 3)
 
 

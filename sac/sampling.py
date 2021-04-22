@@ -14,7 +14,7 @@ def episode(
     mode,
     logger=None
 ):
-    obs = env.reset().reshape(1, -1)
+    obs = env.reset(mode=mode).reshape(1, -1)
     done = False
 
     reward_scale = hyp['reward-scale']

@@ -15,13 +15,13 @@ def test_make_random_dataset_one_battery():
     assert dataset['prices'].shape[0] == 10000
     assert dataset['features'].shape[0] == 10000
 
-    assert dataset['prices'].shape[1] == 1
+    assert len(dataset['prices'].shape) == 1
     assert dataset['features'].shape[1] == 3
 
 
 def test_make_random_dataset_many_battery():
     env = make(
-        'many-battery',
+        'battery',
         n_batteries=4,
         dataset_cfg={
             'name': 'random-dataset',

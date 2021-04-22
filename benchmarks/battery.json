@@ -11,6 +11,7 @@
     "n-tests": 5,
     "size-scale": 6,
     "env": {
-      "name": "battery"
+      "name": "battery",
+      "n_batteries": 2,
     }
 }

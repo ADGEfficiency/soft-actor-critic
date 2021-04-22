@@ -11,20 +11,13 @@ class RandomDataset:
 
     def make_random_dataset(self, n, n_features, n_batteries):
         np.random.seed(42)
-        if n_batteries == 1:
-            #  (timestep, features)
-            return {
-                'prices': np.random.uniform(0, 100, n).reshape(n, 1),
-                'features': np.random.uniform(0, 100, n*n_features).reshape(n, n_features)
-            }
-        else:
-            #  (timestep, features, batteries)
-            prices = np.random.uniform(0, 100, n).reshape(-1)
-            features = np.random.uniform(0, 100, n*n_features*n_batteries).reshape(n, n_features, n_batteries)
-            return {
-                'prices': prices,
-                'features': features
-            }
+        #  (timestep, features, batteries)
+        prices = np.random.uniform(0, 100, n).reshape(-1, )
+        features = np.random.uniform(0, 100, n*n_features*n_batteries).reshape(n, n_features, n_batteries)
+        return {
+            'prices': prices,
+            'features': features
+        }
 
     def get_data(self, cursor):
         return OrderedDict(
@@ -43,9 +36,19 @@ def make_perfect_forecast(prices, horizon):
 
 
 class NEMDataset:
-    def __init__(self, episode_length=128):
+    def __init__(
+        self,
+        n_batteries=1,
+        episode_length=128
+    ):
+        assert n_batteries == 1, 'dont support more than one'
         self.episode_length = episode_length
-        self.population = self.make_nem_dataset_one_battery()
+
+        self.datasets = {
+            'train': self.make_nem_dataset_one_battery(),
+            'test': self.make_nem_dataset_one_battery()
+        }
+
         self.reset()
 
     def make_nem_dataset_one_battery(self):
@@ -82,19 +85,20 @@ class NEMDataset:
             {k: d[cursor] for k, d in self.dataset.items()}
         )
 
-    def reset(self):
-        self.dataset = self.sample_episode()
+    def reset(self, mode='train'):
+        self.dataset = self.sample_episode(mode)
 
-    def sample_episode(self):
-        pop_len = self.population['prices'].shape[0]
+    def sample_episode(self, mode):
+        #  mode could also be dataset
+        dataset = self.datasets[mode]
+        pop_len = dataset['prices'].shape[0]
 
         start = np.random.randint(0, pop_len - self.episode_length, 1)[0]
         end = start + self.episode_length
 
         episode = {}
-        for name, data in self.population.items():
+        for name, data in dataset.items():
             episode[name] = data[start:end]
 
         print(f' sampled nem episode')
         return episode
-
